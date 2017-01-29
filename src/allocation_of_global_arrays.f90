@@ -18,12 +18,12 @@ subroutine allocation_of_global_arrays
 
   Hmat_kin = 0d0
   do i =1,Lsite
-    do j =i+1,Lsite
-      if(abs(i-j) == 1)then
-        Hmat_kin(i,j) = -t0
-        Hmat_kin(j,i) = -t0
-      end if
-    end do
+    j=i+1
+    if(j>Lsite)j=j-Lsite
+    Hmat_kin(i,j) = -t0
+    j=i-1
+    if(j<1)j=j+Lsite
+    Hmat_kin(i,j) = -t0
   end do
 
 end subroutine allocation_of_global_arrays

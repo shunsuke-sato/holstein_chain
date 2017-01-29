@@ -9,7 +9,7 @@ subroutine set_initial_conditions_elec
   integer :: i
 
   do i = 1,Lsite
-    zC(i) = exp(zI*pi*(i-1))/sqrt(dble(Lsite))
+    zC(i) = exp(zI*2d0*pi*(i-1)*dble(Lsite/2)/dble(Lsite))/sqrt(dble(Lsite))
   end do
 
 

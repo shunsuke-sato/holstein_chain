@@ -17,7 +17,9 @@ subroutine multi_traject_Ehrenfest
     call set_initial_conditions_elec
     call set_initial_conditions_ph(itraj)
     call calc_energy(Ekin_t,Eph_t,Ecoup_t)
-    Ekin_l(0)=Ekin_t; Eph_l(0)=Eph_t; Ecoup_l(0)=Ecoup_t
+    Ekin_l(0)=Ekin_l(0)+Ekin_t
+    Eph_l(0)=Eph_l(0)+Eph_t
+    Ecoup_l(0)=Ecoup_l(0)+Ecoup_t
 
     do it = 0,Nt
 
@@ -29,7 +31,9 @@ subroutine multi_traject_Ehrenfest
       X_HO = X_HO_new; V_HO = V_HO_new; F_HO = F_HO_new
 
       call calc_energy(Ekin_t,Eph_t,Ecoup_t)
-      Ekin_l(it+1)=Ekin_t; Eph_l(it+1)=Eph_t; Ecoup_l(it+1)=Ecoup_t
+      Ekin_l(it+1)=Ekin_l(it+1)+Ekin_t
+      Eph_l(it+1)=Eph_l(it+1)+Eph_t
+      Ecoup_l(it+1)=Ecoup_l(it+1)+Ecoup_t
 
     end do
 
