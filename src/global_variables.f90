@@ -25,6 +25,8 @@ module global_variables
 ! Time propagation
   integer :: Nt
   real(8) :: dt
+  real(8),allocatable :: Ekin(:),Eph(:),Ecoup(:)
+  real(8),allocatable :: Ekin_l(:),Eph_l(:),Ecoup_l(:)
 
 ! MPI
   include 'mpif.h'

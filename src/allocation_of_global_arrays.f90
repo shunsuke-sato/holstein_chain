@@ -12,6 +12,9 @@ subroutine allocation_of_global_arrays
   allocate(X_HO(Lsite),V_HO(Lsite),X_HO_ini(Lsite,Ntraj),V_HO_ini(Lsite,Ntraj))
   allocate(X_HO_new(Lsite),V_HO_new(Lsite),X_HO_old(Lsite),V_HO_old(Lsite))
   allocate(F_HO(Lsite),F_HO_new(Lsite),F_HO_old(Lsite))
+  allocate(Ekin(0:Nt+1),Eph(0:Nt+1),Ecoup(0:Nt+1))
+  allocate(Ekin_l(0:Nt+1),Eph_l(0:Nt+1),Ecoup_l(0:Nt+1))
+
 
   Hmat_kin = 0d0
   do i =1,Lsite
