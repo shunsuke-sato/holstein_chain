@@ -17,7 +17,8 @@ subroutine set_model_parameters
 
   Ntraj = 2
 
-  Nt = 8000
-  dt = 0.01d0
+  dt = 0.08d0
+  Nt = aint(30d0/dt)+1
+
 
 end subroutine set_model_parameters

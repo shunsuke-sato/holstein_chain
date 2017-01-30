@@ -15,25 +15,20 @@ subroutine multi_traject_Ehrenfest
 
     if(mod(itraj,Nprocs) /= myrank)cycle
     call set_initial_conditions(itraj)
-    call calc_energy(Ekin_t,Eph_t,Ecoup_t)
-    Ekin_l(0)=Ekin_l(0)+Ekin_t
-    Eph_l(0)=Eph_l(0)+Eph_t
-    Ecoup_l(0)=Ecoup_l(0)+Ecoup_t
 
     do it = 0,Nt
 
-      X_HO_new = X_HO_old + V_HO*2d0*dt 
-      call dt_evolve_elec
-      V_HO_new = V_HO_old + F_HO/mass*2d0*dt 
-      call calc_force_HO
-
-      X_HO_old = X_HO; V_HO_old = V_HO; F_HO_old = F_HO
-      X_HO = X_HO_new; V_HO = V_HO_new; F_HO = F_HO_new
-
+      X_HO_new = 2d0*X_HO - X_HO_old + F_HO/mass*dt**2
+      V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt
       call calc_energy(Ekin_t,Eph_t,Ecoup_t)
-      Ekin_l(it+1)=Ekin_l(it+1)+Ekin_t
-      Eph_l(it+1)=Eph_l(it+1)+Eph_t
-      Ecoup_l(it+1)=Ecoup_l(it+1)+Ecoup_t
+      Ekin_l(it)=Ekin_l(it)+Ekin_t
+      Eph_l(it)=Eph_l(it)+Eph_t
+      Ecoup_l(it)=Ecoup_l(it)+Ecoup_t
+
+      call dt_evolve_elec
+
+      X_HO_old = X_HO; X_HO = X_HO_new
+      call calc_force_HO
 
     end do
 
@@ -50,7 +45,7 @@ subroutine multi_traject_Ehrenfest
   if(myrank == 0)then
     open(21,file="energy_t.out")
     write(21,"(A)")"# tt, Etot, Ekin, Eph, Ecoup"
-    do it = 0,Nt+1
+    do it = 0,Nt
       write(21,"(999e26.16e3)")dt*it,Ekin(it)+Eph(it)+Ecoup(it),Ekin(it),Eph(it),Ecoup(it)
     end do
     close(21)

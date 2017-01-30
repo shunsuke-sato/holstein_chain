@@ -9,7 +9,7 @@ subroutine calc_force_HO
   integer :: i
 
   do i = 1,Lsite
-    F_HO_new(i) = gamma*abs(zC(i))**2*sqrt(2d0*mass*omega0) - omega0**2*mass*X_HO_new(i)
+    F_HO(i) = gamma*abs(zC(i))**2*sqrt(2d0*mass*omega0) - omega0**2*mass*X_HO(i)
   end do
   
 
