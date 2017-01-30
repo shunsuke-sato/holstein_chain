@@ -15,9 +15,9 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 20
+  Ntraj = 2
 
-  Nt = 2000
-  dt = 0.32d0
+  Nt = 8000
+  dt = 0.01d0
 
 end subroutine set_model_parameters

@@ -14,8 +14,7 @@ subroutine multi_traject_Ehrenfest
   do itraj = 1,Ntraj
 
     if(mod(itraj,Nprocs) /= myrank)cycle
-    call set_initial_conditions_elec
-    call set_initial_conditions_ph(itraj)
+    call set_initial_conditions(itraj)
     call calc_energy(Ekin_t,Eph_t,Ecoup_t)
     Ekin_l(0)=Ekin_l(0)+Ekin_t
     Eph_l(0)=Eph_l(0)+Eph_t
@@ -23,11 +22,12 @@ subroutine multi_traject_Ehrenfest
 
     do it = 0,Nt
 
-      X_HO_new = X_HO_old + V_HO*2d0*dt + 0.5d0*F_HO/mass*(2d0*dt)**2
+      X_HO_new = X_HO_old + V_HO*2d0*dt 
       call dt_evolve_elec
+      V_HO_new = V_HO_old + F_HO/mass*2d0*dt 
       call calc_force_HO
-      V_HO_new = V_HO_old + (F_HO_new + 2d0*F_HO - F_HO_old)*dt
 
+      X_HO_old = X_HO; V_HO_old = V_HO; F_HO_old = F_HO
       X_HO = X_HO_new; V_HO = V_HO_new; F_HO = F_HO_new
 
       call calc_energy(Ekin_t,Eph_t,Ecoup_t)
