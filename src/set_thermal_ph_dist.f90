@@ -23,10 +23,10 @@ subroutine set_thermal_ph_dist
       do i = 1,Lsite
 
         call normal_random_number(x1,x2)
-        call random_number(x2)
         ss = x1/sqrt(fact) !Quantum distribution
-        X_HO_ini(i,itraj)=ss*sin(2d0*pi*x2)/(omega0*sqrt(mass))
-        V_HO_ini(i,itraj)=ss*cos(2d0*pi*x2)*sqrt(mass)
+        X_HO_ini(i,itraj)=ss/(omega0*sqrt(mass))
+        ss = x2/sqrt(fact) !Quantum distribution
+        V_HO_ini(i,itraj)=ss/sqrt(mass)
 
       end do
     end do
