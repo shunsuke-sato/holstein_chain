@@ -30,6 +30,9 @@ module global_variables
   real(8),allocatable :: Ekin(:),Eph(:),Ecoup(:)
   real(8),allocatable :: Ekin_l(:),Eph_l(:),Ecoup_l(:)
 
+! Generalized Quantum master equation
+  complex(8),allocatable :: zK_full(:,:,:,:),zK1(:,:,:,:),zK2(:,:,:,:),zK3(:,:,:,:)
+
 ! MPI
   include 'mpif.h'
   integer :: Myrank,Nprocs,ierr
