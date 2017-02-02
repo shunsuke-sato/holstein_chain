@@ -17,6 +17,7 @@ subroutine set_thermal_ph_dist
     fact = 2d0*tanh(beta*omega0/2d0)/omega0
   end if
 
+  beta_KB = fact
 
   if(myrank == 0)then
     do itraj=1,Ntraj

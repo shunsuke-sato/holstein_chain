@@ -32,6 +32,7 @@ module global_variables
 
 ! Generalized Quantum master equation
   complex(8),allocatable :: zK_full(:,:,:,:),zK1(:,:,:,:),zK2(:,:,:,:),zK3(:,:,:,:)
+  real(8) :: beta_KB
 
 ! MPI
   include 'mpif.h'
