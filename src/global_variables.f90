@@ -10,6 +10,9 @@ module global_variables
   real(8),parameter :: pi=4d0*atan(1d0)
   complex(8),parameter :: zI=(0d0,1d0)
 
+! Control parameter
+  character(8) :: calc_mode
+
 ! Parameters of model
   integer :: Lsite
   real(8) :: t0,gamma,mass,omega0,Tph

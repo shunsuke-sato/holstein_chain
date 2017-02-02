@@ -3,24 +3,13 @@
 ! Released under the MIT license                    !
 ! https://opensource.org/licenses/mit-license.php   !
 !---------------------------------------------------!
-subroutine set_model_parameters
-  use global_variables
+Subroutine err_finalize(err_message)
+  use Global_Variables
   implicit none
+  character(*),intent(in) :: err_message
 
-  Lsite = 12
-  t0 = 1d0
-  omega0 = 1d0
-  gamma = 1d0
-  mass = 1d0
+  if(myrank == 0)write(*,*) err_message
+  call MPI_finalize(ierr)
 
-  Tph = -1d0
-
-  Ntraj = 10
-
-  dt = 0.08d0
-  Nt = aint(30d0/dt)+1
-
-!'MTEF', 'GQME_K'
-  calc_mode = 'GQME_K'
-
-end subroutine set_model_parameters
+  stop
+end Subroutine err_finalize

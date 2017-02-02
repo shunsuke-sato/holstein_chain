@@ -12,7 +12,13 @@ program main
   call allocation_of_global_arrays
   call set_thermal_ph_dist
 
-  call multi_traject_Ehrenfest
+  select case(calc_mode)
+  case('MTEF')
+    call multi_traject_Ehrenfest
+  case('GQME_K')
+  case default
+    call err_finalize('Invalid calc_mode')
+  end select
 
 
   call MPI_finalize(ierr)
