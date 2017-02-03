@@ -7,17 +7,17 @@ subroutine set_model_parameters
   use global_variables
   implicit none
 
-  Lsite = 8
+  Lsite = 12
   t0 = 1d0
   omega0 = 1d0
-  gamma = 1d0
+  gamma = sqrt(0.4d0)
   mass = 1d0
 
   Tph = -1d0
 
-  Ntraj = 400
+  Ntraj = 8000
 
-  dt = 0.08d0
+  dt = 0.04d0
 !  Nt = aint(30d0/dt)+1
   Nt = aint(5d0/dt)+1
 

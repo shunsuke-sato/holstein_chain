@@ -17,6 +17,7 @@ program main
     call multi_traject_Ehrenfest
   case('GQME_K')
     call GQME_kernel
+    call GQME_dynamics
   case default
     call err_finalize('Invalid calc_mode')
   end select

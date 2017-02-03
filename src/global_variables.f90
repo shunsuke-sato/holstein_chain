@@ -31,6 +31,7 @@ module global_variables
   real(8),allocatable :: Ekin_l(:),Eph_l(:),Ecoup_l(:)
 
 ! Generalized Quantum master equation
+  complex(8),allocatable :: zrho_DM(:,:,:)
   complex(8),allocatable :: zK_full(:,:,:,:,:),zK1(:,:,:,:,:),zK2(:,:,:,:,:),zK3(:,:,:,:,:)
   real(8) :: beta_KB
 

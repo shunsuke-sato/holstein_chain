@@ -6,7 +6,7 @@
 subroutine evaluate_GQME_kernel_full
   use global_variables
   implicit none
-  integer,parameter :: Niter_scf = 25
+  integer,parameter :: Niter_scf = 15
   integer :: it,it2,iter_scf,i
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
 
@@ -62,6 +62,23 @@ subroutine evaluate_GQME_kernel_full
       zK_full(:,:,:,:,it) = zK_full(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
     end do
 
+    if(myrank == 0)then
+       open(20,file="k.out")
+       do it = 0,Nt
+          write(20,"(999e26.16e3)")dt*it,zK_full(1,2,1,2,it),conjg(zK_full(1,Lsite,1,Lsite,it))
+       end do
+       close(20)
+       open(20,file="k1.out")
+       do it = 0,Nt
+          write(20,"(999e26.16e3)")dt*it,zK1(1,2,1,2,it),conjg(zK1(1,Lsite,1,Lsite,it))
+       end do
+       close(20)
+       open(20,file="k3.out")
+       do it = 0,Nt
+          write(20,"(999e26.16e3)")dt*it,zK3(1,2,1,2,it),conjg(zK3(1,Lsite,1,Lsite,it))
+       end do
+       close(20)
+    end if
 
 end subroutine evaluate_GQME_kernel_full
 !====================================================
@@ -72,7 +89,7 @@ subroutine kernel_product(zK1,zK2,zK3,Lsite)
   complex(8),intent(in) :: zK1(Lsite,Lsite,1,Lsite),zK2(Lsite,Lsite,1,Lsite)
   complex(8),intent(out) :: zK3(Lsite,Lsite,1,Lsite)
   complex(8) :: zs
-  integer :: a1,a2,b1,b2,c1,c2,c1t,c2t
+  integer :: a1,a2,b1,b2,c1,c2,a1t,a2t,c1t,c2t
 
   do a1 = 1,Lsite
   do a2 = 1,Lsite
@@ -83,9 +100,11 @@ subroutine kernel_product(zK1,zK2,zK3,Lsite)
       zs = 0d0
       do c1 = 1,Lsite
         c1t=1
+        a1t = mod((a1-c1)+ 2*Lsite,Lsite) + 1
+        a2t = mod((a2-c1)+ 2*Lsite,Lsite) + 1
         do c2 = 1,Lsite
           c2t = mod((c2-c1)+ 2*Lsite,Lsite) + 1
-          zs = zs + zK1(a1,a2,c1t,c2t)*zK2(c1,c2,b1,b2)
+          zs = zs + zK1(a1t,a2t,c1t,c2t)*zK2(c1,c2,b1,b2)
         end do
       end do
 
