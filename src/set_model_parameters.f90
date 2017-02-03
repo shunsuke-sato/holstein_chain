@@ -7,7 +7,7 @@ subroutine set_model_parameters
   use global_variables
   implicit none
 
-  Lsite = 12
+  Lsite = 8
   t0 = 1d0
   omega0 = 1d0
   gamma = 1d0

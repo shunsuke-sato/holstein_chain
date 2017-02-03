@@ -6,9 +6,10 @@
 
 # objects.
 *.mod
+*.o
 
 # build temp dir.
 .build_temp*/
 
 # others
-*~
+*~ 

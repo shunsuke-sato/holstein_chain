@@ -10,6 +10,7 @@ subroutine GQME_kernel
   complex(8) :: zK3_tmp(Lsite,Lsite),zK3_tmp_l(Lsite,Lsite)
   real(8) :: phi, zfact
   integer :: itraj,it,jsite
+  integer :: a1,a2
 
   call allocate_GQME_kernel
 
@@ -54,7 +55,7 @@ subroutine GQME_kernel
 
   zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
 ! off-diagonal (1,j)
-  do jsite = 2, Nsite
+  do jsite = 2, Lsite
 
     do itraj = 1,Ntraj
       call random_number(phi); phi = 2d0 * pi
@@ -118,12 +119,13 @@ subroutine GQME_kernel
          end do
       end do
 
+    end do
+
       call MPI_ALLREDUCE(zK1_tmp_l,zK1_tmp,Lsite**2,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(zK3_tmp_l,zK3_tmp,Lsite**2,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
-      zK1_tmp = zK1_tmp/dble(Ntraj)*2d0;   zK3_tmp = zK3_tmp/dble(Ntraj)*2d0
+      zK1_tmp = zK1_tmp/dble(Ntraj)*4d0;   zK3_tmp = zK3_tmp/dble(Ntraj)*4d0
       zK1(:,:,1,jsite) = zK1_tmp(:,:); zK3(:,:,1,jsite) = zK3_tmp(:,:)
-    end do
-  end do
 
+  end do
 
 end subroutine GQME_kernel
