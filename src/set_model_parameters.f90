@@ -15,10 +15,11 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 10
+  Ntraj = 400
 
   dt = 0.08d0
-  Nt = aint(30d0/dt)+1
+!  Nt = aint(30d0/dt)+1
+  Nt = aint(5d0/dt)+1
 
 !'MTEF', 'GQME_K'
   calc_mode = 'GQME_K'

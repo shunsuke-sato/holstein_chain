@@ -38,4 +38,8 @@ module global_variables
   include 'mpif.h'
   integer :: Myrank,Nprocs,ierr
 
+! I/O
+  integer,parameter :: nfile_full_kernel = 50
+  character(50),parameter :: file_full_kernel = 'full_kernel.out'
+
 end module global_variables

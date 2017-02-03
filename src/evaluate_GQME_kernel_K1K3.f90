@@ -8,7 +8,8 @@ subroutine evaluate_GQME_kernel_K1K3
   implicit none
   complex(8),allocatable :: zK1_tmp(:,:,:),zK1_tmp_l(:,:,:)
   complex(8),allocatable :: zK3_tmp(:,:,:),zK3_tmp_l(:,:,:)
-  real(8) :: phi, zfact
+  real(8) :: phi
+  complex(8) :: zfact
   integer :: itraj,it,jsite
   integer :: a1,a2
 
@@ -27,6 +28,7 @@ subroutine evaluate_GQME_kernel_K1K3
     X_HO_old = X_HO - V_HO*dt +0.5d0*F_HO/mass*dt**2
 
     zfact = -zI*beta_KB*V_HO(1)
+
 ! == Kernel calc (1,1) ==
     do a1=1,Lsite
     do a2=1,Lsite
@@ -39,11 +41,10 @@ subroutine evaluate_GQME_kernel_K1K3
     end do
 ! == Kernel calc (1,1) ==
 
-
     do it = 0,Nt-1
 
       X_HO_new = 2d0*X_HO - X_HO_old + F_HO/mass*dt**2
-      V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt
+      V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt + F_HO/mass*dt
 
       call dt_evolve_elec
       X_HO_old = X_HO; X_HO = X_HO_new
@@ -64,19 +65,20 @@ subroutine evaluate_GQME_kernel_K1K3
 
   end do
 
-  call MPI_ALLREDUCE(zK1_tmp_l,(Nt+1)*zK1_tmp,Lsite**2, &
+  call MPI_ALLREDUCE(zK1_tmp_l,zK1_tmp,(Nt+1)*Lsite**2, &
     MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
   call MPI_ALLREDUCE(zK3_tmp_l,zK3_tmp,(Nt+1)*Lsite**2 &
     ,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
   zK1_tmp = zK1_tmp/dble(Ntraj);   zK3_tmp = zK3_tmp/dble(Ntraj)
   zK1(:,:,1,1,:) = zK1_tmp(:,:,:); zK3(:,:,1,1,:) = zK3_tmp(:,:,:)
+  if(myrank==0)  write(*,*)sum(abs(zK1(1,2,1,1,:))),sum(abs(zK1(1,2,1,2,:)))
 
-  zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
 ! off-diagonal (1,j)
   do jsite = 2, Lsite
+    zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
 
     do itraj = 1,Ntraj
-      call random_number(phi); phi = 2d0 * pi
+      call random_number(phi); phi = 2d0 * pi *phi
       if(mod(itraj,Nprocs) /= myrank)cycle
 
 ! positive summ
@@ -103,7 +105,7 @@ subroutine evaluate_GQME_kernel_K1K3
        do it = 0,Nt-1
 
          X_HO_new = 2d0*X_HO - X_HO_old + F_HO/mass*dt**2
-         V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt
+         V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt + F_HO/mass*dt
 
          call dt_evolve_elec
          X_HO_old = X_HO; X_HO = X_HO_new
@@ -146,7 +148,7 @@ subroutine evaluate_GQME_kernel_K1K3
       do it = 0,Nt-1
 
          X_HO_new = 2d0*X_HO - X_HO_old + F_HO/mass*dt**2
-         V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt
+         V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt + F_HO/mass*dt
 
          call dt_evolve_elec
          X_HO_old = X_HO; X_HO = X_HO_new
@@ -166,11 +168,11 @@ subroutine evaluate_GQME_kernel_K1K3
 
     end do
 
-      call MPI_ALLREDUCE(zK1_tmp_l,(Nt+1)*zK1_tmp,Lsite**2, &
+      call MPI_ALLREDUCE(zK1_tmp_l,zK1_tmp,(Nt+1)*Lsite**2, &
         MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(zK3_tmp_l,zK3_tmp,(Nt+1)*Lsite**2 &
         ,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
-      zK1_tmp = zK1_tmp/dble(Ntraj)*4d0;   zK3_tmp = zK3_tmp/dble(Ntraj)*4d0
+      zK1_tmp = zK1_tmp/dble(2*Ntraj)*4d0;   zK3_tmp = zK3_tmp/dble(2*Ntraj)*4d0
       zK1(:,:,1,jsite,:) = zK1_tmp(:,:,:); zK3(:,:,1,jsite,:) = zK3_tmp(:,:,:)
   end do
 

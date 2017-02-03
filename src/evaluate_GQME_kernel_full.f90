@@ -6,8 +6,8 @@
 subroutine evaluate_GQME_kernel_full
   use global_variables
   implicit none
-  integer,parameter :: Niter_scf = 100
-  integer :: it,it2,iter_scf
+  integer,parameter :: Niter_scf = 25
+  integer :: it,it2,iter_scf,i
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
 
   if(myrank /= 0)return
@@ -39,6 +39,7 @@ subroutine evaluate_GQME_kernel_full
       zK2(:,:,:,:,it) = zK2(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
     end do
 
+    write(*,"(A,2x,I5,e16.6e3)")"K2 error",iter_scf,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK2)**2)
     zK2_tmp = zK2
 
   end do
@@ -79,10 +80,11 @@ subroutine kernel_product(zK1,zK2,zK3,Lsite)
     b1=1
     do b2=1,Lsite
 
+      zs = 0d0
       do c1 = 1,Lsite
         c1t=1
         do c2 = 1,Lsite
-          c2t = mod((c2-c1) + 2*Lsite,Lsite)+c1t
+          c2t = mod((c2-c1)+ 2*Lsite,Lsite) + 1
           zs = zs + zK1(a1,a2,c1t,c2t)*zK2(c1,c2,b1,b2)
         end do
       end do
