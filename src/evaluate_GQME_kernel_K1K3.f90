@@ -77,7 +77,7 @@ subroutine evaluate_GQME_kernel_K1K3
   if(myrank==0)  write(*,*)sum(abs(zK1(1,2,1,1,:))),sum(abs(zK1(1,2,1,2,:)))
 
 ! off-diagonal (1,j)
-  do jsite = 1, Lsite
+  do jsite = 2, Lsite
     zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
     call random_number(phi1); phi1 = 2d0 * pi *phi1
     call random_number(phi2); phi2 = 2d0 * pi *phi2
