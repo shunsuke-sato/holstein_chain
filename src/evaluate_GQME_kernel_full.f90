@@ -9,12 +9,16 @@ subroutine evaluate_GQME_kernel_full
   integer,parameter :: Niter_scf = 15
   integer :: it,it2,iter_scf,i
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
+  integer :: mod_table(-Lsite:Lsite)
 
   if(myrank /= 0)return
 
   allocate(zK2_tmp(Lsite,Lsite,1,Lsite,0:Nt))
   allocate(zK_tmp(Lsite,Lsite,1,Lsite),zK_sum(Lsite,Lsite,1,Lsite))
 
+  do i = -Lsite,Lsite
+    mod_table(i) = mod(i+2*Lsite,Lsite)
+  end do
 
 
 ! evaluate K2
@@ -27,12 +31,12 @@ subroutine evaluate_GQME_kernel_full
       
       zK2(:,:,:,:,it) = zK3(:,:,:,:,it)
       if(it == 0)cycle
-      call kernel_product(zK3(:,:,:,:,it),zK2_tmp(:,:,:,:,0),zK_tmp,Lsite)
+      call kernel_product(zK3(:,:,:,:,it),zK2_tmp(:,:,:,:,0),zK_tmp,Lsite,mod_table)
       zK_sum = 0.5d0*zK_tmp
-      call kernel_product(zK3(:,:,:,:,0),zK2_tmp(:,:,:,:,it),zK_tmp,Lsite)
+      call kernel_product(zK3(:,:,:,:,0),zK2_tmp(:,:,:,:,it),zK_tmp,Lsite,mod_table)
       zK_sum = zK_sum + 0.5d0*zK_tmp
       do it2 = 1,it-1
-        call kernel_product(zK3(:,:,:,:,it-it2),zK2_tmp(:,:,:,:,it2),zK_tmp,Lsite)
+        call kernel_product(zK3(:,:,:,:,it-it2),zK2_tmp(:,:,:,:,it2),zK_tmp,Lsite,mod_table)
         zK_sum = zK_sum + zK_tmp
       end do
       zK_sum = zK_sum*dt
@@ -50,17 +54,20 @@ subroutine evaluate_GQME_kernel_full
       
       zK_full(:,:,:,:,it) = zK1(:,:,:,:,it)
       if(it == 0)cycle
-      call kernel_product(zK1(:,:,:,:,it),zK2(:,:,:,:,0),zK_tmp,Lsite)
+      call kernel_product(zK1(:,:,:,:,it),zK2(:,:,:,:,0),zK_tmp,Lsite,mod_table)
       zK_sum = 0.5d0*zK_tmp
-      call kernel_product(zK1(:,:,:,:,0),zK2(:,:,:,:,it),zK_tmp,Lsite)
+      call kernel_product(zK1(:,:,:,:,0),zK2(:,:,:,:,it),zK_tmp,Lsite,mod_table)
       zK_sum = zK_sum + 0.5d0*zK_tmp
       do it2 = 1,it-1
-        call kernel_product(zK1(:,:,:,:,it-it2),zK2(:,:,:,:,it2),zK_tmp,Lsite)
+        call kernel_product(zK1(:,:,:,:,it-it2),zK2(:,:,:,:,it2),zK_tmp,Lsite,mod_table)
         zK_sum = zK_sum + zK_tmp
       end do
       zK_sum = zK_sum*dt
       zK_full(:,:,:,:,it) = zK_full(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
     end do
+
+
+    call refine_GQME_kernel_full
 
     if(myrank == 0)then
        open(20,file="k.out")
@@ -83,9 +90,48 @@ subroutine evaluate_GQME_kernel_full
 end subroutine evaluate_GQME_kernel_full
 !====================================================
 ! calculate zK3 = zK1*zK2
-subroutine kernel_product(zK1,zK2,zK3,Lsite)
+subroutine kernel_product(zK1,zK2,zK3,Lsite,mod_table)
   implicit none
-  integer,intent(in) :: Lsite
+  integer,intent(in) :: Lsite,mod_table(-Lsite:Lsite)
+  complex(8),intent(in) :: zK1(Lsite,Lsite,1,Lsite),zK2(Lsite,Lsite,1,Lsite)
+  complex(8),intent(out) :: zK3(Lsite,Lsite,1,Lsite)
+  complex(8) :: zs
+  integer :: a1,a2,b1,b2,c1,c2,a1t,a2t,c1t,c2t
+
+
+!  zK3 = 0d0
+!  do b1=1,1
+    b1=1
+    do b2=1,Lsite
+
+      do a1 = 1,Lsite
+
+        do a2 = 1,Lsite
+
+
+          zs = 0d0
+          do c2 = 1,Lsite
+            do c1 = 1,Lsite
+              c1t=1
+              c2t = mod_table(c2-c1) + 1
+              a1t = mod_table(a1-c1) + 1
+              a2t = mod_table(a2-c1) + 1
+              zs = zs + zK1(a1t,a2t,c1t,c2t)*zK2(c1,c2,b1,b2)
+            end do
+          end do
+
+          zK3(a1,a2,b1,b2) =  zs
+        end do
+      end do
+    end do
+
+
+end subroutine kernel_product
+
+!=============================================
+subroutine kernel_product_org(zK1,zK2,zK3,Lsite,mod_table)
+  implicit none
+  integer,intent(in) :: Lsite,mod_table(-Lsite:Lsite)
   complex(8),intent(in) :: zK1(Lsite,Lsite,1,Lsite),zK2(Lsite,Lsite,1,Lsite)
   complex(8),intent(out) :: zK3(Lsite,Lsite,1,Lsite)
   complex(8) :: zs
@@ -100,10 +146,10 @@ subroutine kernel_product(zK1,zK2,zK3,Lsite)
       zs = 0d0
       do c1 = 1,Lsite
         c1t=1
-        a1t = mod((a1-c1)+ 2*Lsite,Lsite) + 1
-        a2t = mod((a2-c1)+ 2*Lsite,Lsite) + 1
+        a1t = mod_table(a1-c1) + 1
+        a2t = mod_table(a2-c1) + 1
         do c2 = 1,Lsite
-          c2t = mod((c2-c1)+ 2*Lsite,Lsite) + 1
+          c2t = mod_table(c2-c1) + 1
           zs = zs + zK1(a1t,a2t,c1t,c2t)*zK2(c1,c2,b1,b2)
         end do
       end do
@@ -115,4 +161,4 @@ subroutine kernel_product(zK1,zK2,zK3,Lsite)
   end do
 
 
-end subroutine kernel_product
+end subroutine kernel_product_org
