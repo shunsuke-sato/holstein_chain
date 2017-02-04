@@ -19,9 +19,12 @@ subroutine GQME_dynamics
 
   do a1 = 1,Lsite
      do a2 = 1,Lsite
-        zrho_DM(a1,a2,-1:0) = zC(a1)*conjg(zC(a2))
+        zrho_DM(a1,a2,0) = zC(a1)*conjg(zC(a2))
      end do
   end do
+
+  zrho_t=-zI*(matmul(Hmat_kin,zrho_DM(:,:,0))-matmul(zrho_DM(:,:,0),Hmat_kin))
+  zrho_DM(:,:,-1) = zrho_DM(:,:,0) - dt*zrho_t
 
   zrho_t = matmul(Hmat_kin,zrho_DM(:,:,0))
   Ekin_s=0d0; norm_s=0d0
