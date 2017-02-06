@@ -3,26 +3,16 @@
 ! Released under the MIT license                    !
 ! https://opensource.org/licenses/mit-license.php   !
 !---------------------------------------------------!
-subroutine set_model_parameters
+subroutine GQME_kernel_read
   use global_variables
   implicit none
 
-  Lsite = 12
-  t0 = 1d0
-  omega0 = 1d0
-  gamma = sqrt(0.4d0)
-  mass = 1d0
+  call allocate_GQME_kernel
 
-  Tph = -1d0
+  if(myrank == 0)then
+    open(nfile_full_kernel,file=trim(file_full_kernel),form='unformatted')
+    read(nfile_full_kernel)zK_full,zK1,zK3
+    close(nfile_full_kernel)
+  end if
 
-  Ntraj = 1000
-
-  dt = 0.04d0
-!  Nt = aint(30d0/dt)+1
-  Nt = aint(25d0/dt)+1
-
-!'MTEF', 'GQME_K'
-  calc_mode = 'GQME_T'
-!  calc_mode = 'MTEF'
-
-end subroutine set_model_parameters
+end subroutine GQME_kernel_read

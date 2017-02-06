@@ -18,6 +18,9 @@ program main
   case('GQME_K')
     call GQME_kernel
     call GQME_dynamics
+  case('GQME_T')
+    call GQME_kernel_read
+    call GQME_dynamics
   case default
     call err_finalize('Invalid calc_mode')
   end select
