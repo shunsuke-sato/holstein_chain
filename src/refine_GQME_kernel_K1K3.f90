@@ -12,23 +12,23 @@ subroutine refine_GQME_kernel_K1K3
 !  return
   allocate(zK1_tmp(Lsite,Lsite,1,Lsite,0:Nt),zK3_tmp(Lsite,Lsite,1,Lsite,0:Nt))
 
-! Inversion symmetry
-  do a1 = 1,Lsite
-    a1i = mod(-(a1-1)+2*Lsite,Lsite)+1
-    do a2 = 1,Lsite
-      a2i = mod(-(a2-1)+2*Lsite,Lsite)+1
-      do b2 = 1,Lsite
-        b2i = mod(-(b2-1)+2*Lsite,Lsite)+1
-    
-        zK1_tmp(a1,a2,1,b2,:) = 0.5d0*(zK1(a1,a2,1,b2,:) + zK1(a1i,a2i,1,b2i,:) )
-        zK3_tmp(a1,a2,1,b2,:) = 0.5d0*(zK3(a1,a2,1,b2,:) + zK3(a1i,a2i,1,b2i,:) )
-        
-      end do
-    end do
-  end do
-
-  zK1 = zK1_tmp
-  zK3 = zK3_tmp
+!! Inversion symmetry
+!  do a1 = 1,Lsite
+!    a1i = mod(-(a1-1)+2*Lsite,Lsite)+1
+!    do a2 = 1,Lsite
+!      a2i = mod(-(a2-1)+2*Lsite,Lsite)+1
+!      do b2 = 1,Lsite
+!        b2i = mod(-(b2-1)+2*Lsite,Lsite)+1
+!    
+!        zK1_tmp(a1,a2,1,b2,:) = 0.5d0*(zK1(a1,a2,1,b2,:) + zK1(a1i,a2i,1,b2i,:) )
+!        zK3_tmp(a1,a2,1,b2,:) = 0.5d0*(zK3(a1,a2,1,b2,:) + zK3(a1i,a2i,1,b2i,:) )
+!        
+!      end do
+!    end do
+!  end do
+!
+!  zK1 = zK1_tmp
+!  zK3 = zK3_tmp
 
 
 ! self-joint symmetry

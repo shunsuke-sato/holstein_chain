@@ -14,7 +14,7 @@ subroutine GQME_kernel
 
   if(myrank == 0)then
     open(nfile_full_kernel,file=trim(file_full_kernel),form='unformatted')
-    write(nfile_full_kernel)zK_full
+    write(nfile_full_kernel)zK_full,zK1,zK3
     close(nfile_full_kernel)
   end if
 

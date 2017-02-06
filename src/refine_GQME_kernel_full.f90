@@ -12,21 +12,21 @@ subroutine refine_GQME_kernel_full
 !  return
   allocate(zKf_tmp(Lsite,Lsite,1,Lsite,0:Nt))
 
-! Inversion symmetry
-  do a1 = 1,Lsite
-    a1i = mod(-(a1-1)+2*Lsite,Lsite)+1
-    do a2 = 1,Lsite
-      a2i = mod(-(a2-1)+2*Lsite,Lsite)+1
-     do b2 = 1,Lsite
-        b2i = mod(-(b2-1)+2*Lsite,Lsite)+1
-    
-        zKf_tmp(a1,a2,1,b2,:) = 0.5d0*(zK_full(a1,a2,1,b2,:) + zK_full(a1i,a2i,1,b2i,:) )
-        
-      end do
-    end do
-  end do
+!! Inversion symmetry
+!  do a1 = 1,Lsite
+!    a1i = mod(-(a1-1)+2*Lsite,Lsite)+1
+!    do a2 = 1,Lsite
+!      a2i = mod(-(a2-1)+2*Lsite,Lsite)+1
+!     do b2 = 1,Lsite
+!        b2i = mod(-(b2-1)+2*Lsite,Lsite)+1
+!    
+!        zKf_tmp(a1,a2,1,b2,:) = 0.5d0*(zK_full(a1,a2,1,b2,:) + zK_full(a1i,a2i,1,b2i,:) )
+!        
+!      end do
+!    end do
+!  end do
 
-  zK_full = zKf_tmp
+!  zK_full = zKf_tmp
 
 
 ! self-joint symmetry
