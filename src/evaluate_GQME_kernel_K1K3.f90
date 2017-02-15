@@ -13,9 +13,8 @@ subroutine evaluate_GQME_kernel_K1K3
   integer :: itraj,it,jsite
   integer :: a1,a2
   real(8),parameter :: rate = 0.1d0
-  integer,parameter :: Nphase = 2
   integer  :: iphase,jphase
-  real(8) :: phi(Nphase)
+  real(8) :: phi
 
   allocate(zK1_tmp(Lsite,Lsite,0:Nt),zK1_tmp_l(Lsite,Lsite,0:Nt))
   allocate(zK3_tmp(Lsite,Lsite,0:Nt),zK3_tmp_l(Lsite,Lsite,0:Nt))
@@ -83,17 +82,13 @@ subroutine evaluate_GQME_kernel_K1K3
   do jsite = 2, Lsite
     call set_thermal_ph_dist
     zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
-    do iphase = 1,Nphase
-       call random_number(phi(iphase)); phi(iphase) = 2d0 * pi *phi(iphase)
-    end do
+    call random_number(phi); phi = 2d0 * pi *phi
     do itraj = 1,Ntraj
       if(mod(itraj,Nprocs) /= myrank)cycle
 
-      do iphase = 1,Nphase
-      do jphase = 1,Nphase
 ! positive summ
 !      call set_initial_conditions_elec
-      zC = 0d0; zC(1) = sqrt(0.5d0); zC(jsite) = exp(zI*(phi(iphase) + 2d0*pi*dble(jphase)/dble(Nphase)  ))*sqrt(0.5d0)
+      zC = 0d0; zC(1) = sqrt(0.5d0); zC(jsite) = exp(zI*phi)*sqrt(0.5d0)
 !      zC(1) = exp(zI*phi1)*zC(1)
 !      zC(jsite) = exp(zI*phi2)*zC(jsite)
       call set_initial_conditions_ph(itraj)
@@ -138,14 +133,11 @@ subroutine evaluate_GQME_kernel_K1K3
 
     end do
 
-    end do
-    end do
-
       call MPI_ALLREDUCE(zK1_tmp_l,zK1_tmp,(Nt+1)*Lsite**2, &
         MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(zK3_tmp_l,zK3_tmp,(Nt+1)*Lsite**2 &
         ,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
-      zK1_tmp = zK1_tmp/dble(Nphase**2*Ntraj)*2**2;   zK3_tmp = zK3_tmp/dble(Nphase**2*Ntraj)*2**2
+      zK1_tmp = zK1_tmp/dble(Ntraj)*2**2;   zK3_tmp = zK3_tmp/dble(Ntraj)*2**2
       zK1(:,:,1,jsite,:) = zK1_tmp(:,:,:); zK3(:,:,1,jsite,:) = zK3_tmp(:,:,:)
   end do
 
