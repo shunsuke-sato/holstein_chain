@@ -13,8 +13,9 @@ subroutine multi_traject_Ehrenfest
 
   do itraj = 1,Ntraj
 
+
+    call set_initial_conditions
     if(mod(itraj,Nprocs) /= myrank)cycle
-    call set_initial_conditions(itraj)
 
     do it = 0,Nt
 

@@ -22,7 +22,7 @@ module global_variables
 
 ! Multi-trajectory
   integer :: Ntraj
-  real(8),allocatable :: X_Ho_ini(:,:),V_HO_ini(:,:)
+  real(8),allocatable :: X_Ho_ini(:),V_HO_ini(:)
 
 ! Time propagation
   integer :: Nt

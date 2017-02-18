@@ -19,22 +19,15 @@ subroutine set_thermal_ph_dist
 
   beta_KB = fact
 
-  if(myrank == 0)then
-    do itraj=1,Ntraj
-      do i = 1,Lsite
+  do i = 1,Lsite
 
-        call normal_random_number(x1,x2)
-        ss = x1/sqrt(fact) !Quantum distribution
-        X_HO_ini(i,itraj)=ss/(omega0*sqrt(mass))
-        ss = x2/sqrt(fact) !Quantum distribution
-        V_HO_ini(i,itraj)=ss/sqrt(mass)
+     call normal_random_number(x1,x2)
+     ss = x1/sqrt(fact) !Quantum distribution
+     X_HO_ini(i)=ss/(omega0*sqrt(mass))
+     ss = x2/sqrt(fact) !Quantum distribution
+     V_HO_ini(i)=ss/sqrt(mass)
 
-      end do
-    end do
-  end if
-
-  call MPI_BCAST(X_HO_ini,Lsite*Ntraj,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(V_HO_ini,Lsite*Ntraj,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+  end do
 
 end subroutine set_thermal_ph_dist
 

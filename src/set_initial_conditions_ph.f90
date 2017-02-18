@@ -3,12 +3,13 @@
 ! Released under the MIT license                    !
 ! https://opensource.org/licenses/mit-license.php   !
 !---------------------------------------------------!
-subroutine set_initial_conditions_ph(itraj)
+subroutine set_initial_conditions_ph
   use global_variables
   implicit none
-  integer, intent(in) :: itraj
 
-  X_HO(:) = X_HO_ini(:,itraj)
-  V_HO(:) = V_HO_ini(:,itraj)
+  call set_thermal_ph_dist 
+
+  X_HO(:) = X_HO_ini(:)
+  V_HO(:) = V_HO_ini(:)
 
 end subroutine set_initial_conditions_ph

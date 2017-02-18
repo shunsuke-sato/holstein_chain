@@ -23,13 +23,14 @@ subroutine evaluate_GQME_kernel_K1K3
   zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
 ! diagonal (1,1)
   do itraj = 1,Ntraj
-    if(mod(itraj,Nprocs) /= myrank)cycle
+
 
     zC = 0d0; zC(1) = 1d0
 !    call set_initial_conditions_elec
-    call set_initial_conditions_ph(itraj)
+    call set_initial_conditions_ph
     call calc_force_HO
     X_HO_old = X_HO - V_HO*dt +0.5d0*F_HO/mass*dt**2
+    if(mod(itraj,Nprocs) /= myrank)cycle
 
     zfact = +zI*beta_KB*V_HO(1)
 
@@ -82,18 +83,19 @@ subroutine evaluate_GQME_kernel_K1K3
   do jsite = 2, Lsite
     call set_thermal_ph_dist
     zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
-    call random_number(phi); phi = 2d0 * pi *phi
     do itraj = 1,Ntraj
-      if(mod(itraj,Nprocs) /= myrank)cycle
+    call random_number(phi); phi = 2d0 * pi *phi
 
 ! positive summ
 !      call set_initial_conditions_elec
       zC = 0d0; zC(1) = sqrt(0.5d0); zC(jsite) = exp(zI*phi)*sqrt(0.5d0)
 !      zC(1) = exp(zI*phi1)*zC(1)
 !      zC(jsite) = exp(zI*phi2)*zC(jsite)
-      call set_initial_conditions_ph(itraj)
+      call set_initial_conditions_ph
       call calc_force_HO
       X_HO_old = X_HO - V_HO*dt +0.5d0*F_HO/mass*dt**2
+
+      if(mod(itraj,Nprocs) /= myrank)cycle
 
       zfact = (X_HO(1) - X_HO(jsite))  +zI*0.5d0*beta_KB*(V_HO(1)+V_HO(jsite))
       zfact = zfact*zC(1)*conjg(zC(jsite))

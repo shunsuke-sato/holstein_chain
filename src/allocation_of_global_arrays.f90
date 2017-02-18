@@ -9,7 +9,7 @@ subroutine allocation_of_global_arrays
   integer :: i,j
 
   allocate(zC(Lsite),Hmat_kin(Lsite,Lsite),Hmat_coup(Lsite,Lsite),Hmat_tot(Lsite,Lsite))
-  allocate(X_HO(Lsite),V_HO(Lsite),F_HO(Lsite),X_HO_ini(Lsite,Ntraj),V_HO_ini(Lsite,Ntraj))
+  allocate(X_HO(Lsite),V_HO(Lsite),F_HO(Lsite),X_HO_ini(Lsite),V_HO_ini(Lsite))
   allocate(X_HO_new(Lsite),X_HO_old(Lsite))
   allocate(Ekin(0:Nt+1),Eph(0:Nt+1),Ecoup(0:Nt+1))
   allocate(Ekin_l(0:Nt+1),Eph_l(0:Nt+1),Ecoup_l(0:Nt+1))
