@@ -43,7 +43,8 @@ subroutine evaluate_GQME_kernel_full
       zK2(:,:,:,:,it) = zK2(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
     end do
 
-    write(*,"(A,2x,I5,e16.6e3)")"K2 error",iter_scf,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2)
+    write(*,"(A,2x,I5,2e16.6e3)")"K2 error",iter_scf,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2) &
+         ,sum(abs(zK2)**2)/sum(abs(zK1)**2)
     zK2_tmp = zK2
 
   end do
