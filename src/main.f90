@@ -9,18 +9,23 @@ program main
 
   call initialize_mpi
   call set_model_parameters
-  call allocation_of_global_arrays
-  call set_thermal_ph_dist
+
 
   select case(calc_mode)
   case('MTEF')
+    call allocation_of_global_arrays
     call multi_traject_Ehrenfest
   case('GQME_K')
+    call allocation_of_global_arrays
     call GQME_kernel
     call GQME_dynamics
   case('GQME_T')
+    call allocation_of_global_arrays
     call GQME_kernel_read
     call GQME_dynamics
+  case('PBME')
+    call PBME_allocation
+    call PBME_dynamics
   case default
     call err_finalize('Invalid calc_mode')
   end select

@@ -35,6 +35,10 @@ module global_variables
   complex(8),allocatable :: zK_full(:,:,:,:,:),zK1(:,:,:,:,:),zK2(:,:,:,:,:),zK3(:,:,:,:,:)
   real(8) :: beta_KB
 
+! PBME
+  real(8),allocatable :: x_m(:),p_m(:)
+
+
 ! MPI
   include 'mpif.h'
   integer :: Myrank,Nprocs,ierr
