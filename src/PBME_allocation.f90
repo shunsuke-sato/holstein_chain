@@ -10,6 +10,8 @@ subroutine PBME_allocation
 
   allocate(Hmat_kin(Lsite,Lsite),Hmat_coup(Lsite,Lsite),Hmat_tot(Lsite,Lsite))
   allocate(X_HO(Lsite),V_HO(Lsite),F_HO(Lsite),X_HO_ini(Lsite),V_HO_ini(Lsite))
+  allocate(x_m(Lsite),p_m(Lsite),zweight_m(Lsite,Lsite))
+
 
   Hmat_kin = 0d0
   do i =1,Lsite
