@@ -38,6 +38,8 @@ module global_variables
 ! PBME
   real(8),allocatable :: x_m(:),p_m(:)
   complex(8),allocatable :: zweight_m(:,:)
+  complex(8) :: zweight0
+
 
 ! MPI
   include 'mpif.h'

@@ -8,11 +8,13 @@ subroutine PBME_dynamics
   implicit none
   integer :: itraj,it
   integer :: isite
-  real(8) :: pop(0:Nt+1,Lsite),pop_l(0:Nt+1,Lsite)
+  real(8) :: pop(0:Nt+1,Lsite),pop_l(0:Nt+1,Lsite),pop0(Lsite)
+  real(8) :: Ekin_PBME(0:Nt+1),Ekin_PBME_l(0:Nt+1),Ekin0_PBME
+  real(8) :: Etot_PBME(0:Nt+1),Etot_PBME_l(0:Nt+1),Etot0_PBME
   integer :: icout  = 0
-  
 
   pop_l = 0d0
+  Ekin_PBME_l = 0d0
   do itraj = 1,Ntraj
 
 
@@ -23,25 +25,21 @@ subroutine PBME_dynamics
       icout = icout + 1
     end if
 
-! Start: calculate population
-    it = -1
-    do isite = 1,Lsite
-      pop_l(it+1,isite) = pop_l(it+1,isite) &
-        + zweight_m(1,1)*0.5d0*(x_m(isite)**2 + p_m(isite)**2 -1d0) 
-    end do
-! End: calculate population
+    call PBE_population(pop0)
+    pop_l(0,:) = pop_l(0,:)  + pop0(:)
+    call PBE_Ekin(Ekin0_PBME,Etot0_PBME)
+    Ekin_PBME_l(0) = Ekin_PBME_l(0)  + Ekin0_PBME
+    Etot_PBME_l(0) = Etot_PBME_l(0)  + Etot0_PBME
+
 
     do it = 0,Nt
 
-      call PBME_dt_evolve
-
-! Start: calculate population
-      do isite = 1,Lsite
-        pop_l(it+1,isite) = pop_l(it+1,isite) &
-          + zweight_m(1,1)*0.5d0*(x_m(isite)**2 + p_m(isite)**2 -1d0) 
-      end do
-! End: calculate population
-
+      call PBME_dt_evolve !_traceless
+      call PBE_population(pop0)
+      pop_l(it+1,:) = pop_l(it+1,:)  + pop0(:)
+      call PBE_Ekin(Ekin0_PBME,Etot0_PBME)
+      Ekin_PBME_l(it+1) = Ekin_PBME_l(it+1)  + Ekin0_PBME
+      Etot_PBME_l(it+1) = Etot_PBME_l(it+1)  + Etot0_PBME
 
 
     end do
@@ -50,14 +48,88 @@ subroutine PBME_dynamics
 
   call MPI_ALLREDUCE(pop_l,pop,(Nt+2)*Lsite,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
   pop = pop/Ntraj
+  call MPI_ALLREDUCE(Ekin_PBME_l,Ekin_PBME,(Nt+2),MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+  Ekin_PBME = Ekin_PBME/Ntraj
+  call MPI_ALLREDUCE(Etot_PBME_l,Etot_PBME,(Nt+2),MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+  Etot_PBME = Etot_PBME/Ntraj
 
   if(myrank == 0)then
     open(21,file="PBME_population.out")
     do it = 0,Nt+1
-      write(21,"(999e26.16e3)")dt*it,pop(it,:)
+      write(21,"(999e26.16e3)")dt*it,sum(pop(it,:)),pop(it,:)
+    end do
+    close(21)
+  end if
+  if(myrank == Nprocs-1)then
+    open(21,file="PBME_Ekin.out")
+    do it = 0,Nt+1
+      write(21,"(999e26.16e3)")dt*it,Ekin_PBME(it),Etot_PBME(it)
     end do
     close(21)
   end if
 
 
 end subroutine PBME_dynamics
+!===============================================================================
+subroutine PBE_population(pop0)
+  use global_variables
+  implicit none
+  real(8) :: pop0(Lsite)
+  integer :: isite
+
+  pop0 = 0d0
+  do isite = 1,Lsite
+    pop0(isite) = pop0(isite) &
+      + zweight0*0.5d0*(x_m(isite)**2 + p_m(isite)**2 -1d0) 
+  end do
+
+end subroutine PBE_population
+!===============================================================================
+subroutine PBE_Ekin(Ekin0,Etot0)
+  use global_variables
+  implicit none
+  real(8) :: Ekin0,Etot0
+  complex(8) :: zdensity_matrix(Lsite,Lsite)
+  complex(8) :: zdensity_matrix0(Lsite,Lsite)
+  real(8) :: n(Lsite),Htot_t(Lsite,Lsite)
+  integer :: i,j
+  complex(8) :: zs
+
+  do i = 1,Lsite
+    do j = 1,Lsite
+      zdensity_matrix(i,j) = x_m(i)*x_m(j) + p_m(i)*p_m(j) &
+        +zI*(x_m(i)*p_m(j) - x_m(j)*p_m(i) )
+    end do
+  end do
+
+  do i = 1,Lsite
+    zdensity_matrix(i,i) = zdensity_matrix(i,i) - 1d0
+  end do
+  zdensity_matrix0 = 0.5d0*zdensity_matrix
+
+
+  zdensity_matrix = zdensity_matrix0*Hmat_kin
+  Ekin0 = zweight0*sum(zdensity_matrix)
+
+!  return
+
+  Htot_t = Hmat_kin
+  do i = 1,Lsite
+    Htot_t(i,i) = Htot_t(i,i) - gamma*sqrt(2d0*mass*omega0)*X_HO(i)
+  end do
+
+
+  zdensity_matrix = zdensity_matrix0*Htot_t
+  Etot0 = zweight0*sum(zdensity_matrix)
+  Etot0 = Etot0 + sum(0.5d0*V_HO**2/mass + 0.5d0*X_HO**2*omega0**2*mass)
+
+!  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
+!
+!  Ekin0 = 0d0
+!  do i = 1,Lsite
+!    do j = 1,Lsite
+!      Ekin0 = Ekin0 + zdensity_matrix(j,i)*zweight_m(j,i)
+!    end do
+!  end do
+
+end subroutine PBE_Ekin
