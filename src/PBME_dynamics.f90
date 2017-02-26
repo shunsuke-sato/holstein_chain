@@ -15,6 +15,7 @@ subroutine PBME_dynamics
 
   pop_l = 0d0
   Ekin_PBME_l = 0d0
+  Etot_PBME_l = 0d0
   do itraj = 1,Ntraj
 
 
@@ -26,20 +27,20 @@ subroutine PBME_dynamics
     end if
 
     call PBE_population(pop0)
-    pop_l(0,:) = pop_l(0,:)  + pop0(:)
+    pop_l(0,:) = pop_l(0,:)  + pop0(:)*zweight0
     call PBE_Ekin(Ekin0_PBME,Etot0_PBME)
-    Ekin_PBME_l(0) = Ekin_PBME_l(0)  + Ekin0_PBME
-    Etot_PBME_l(0) = Etot_PBME_l(0)  + Etot0_PBME
+    Ekin_PBME_l(0) = Ekin_PBME_l(0)  + Ekin0_PBME*zweight0
+    Etot_PBME_l(0) = Etot_PBME_l(0)  + Etot0_PBME*zweight0
 
 
     do it = 0,Nt
 
       call PBME_dt_evolve !_traceless
       call PBE_population(pop0)
-      pop_l(it+1,:) = pop_l(it+1,:)  + pop0(:)
+      pop_l(it+1,:) = pop_l(it+1,:)  + pop0(:)*zweight0
       call PBE_Ekin(Ekin0_PBME,Etot0_PBME)
-      Ekin_PBME_l(it+1) = Ekin_PBME_l(it+1)  + Ekin0_PBME
-      Etot_PBME_l(it+1) = Etot_PBME_l(it+1)  + Etot0_PBME
+      Ekin_PBME_l(it+1) = Ekin_PBME_l(it+1)  + Ekin0_PBME*zweight0
+      Etot_PBME_l(it+1) = Etot_PBME_l(it+1)  + Etot0_PBME*zweight0
 
 
     end do
@@ -48,9 +49,9 @@ subroutine PBME_dynamics
 
   call MPI_ALLREDUCE(pop_l,pop,(Nt+2)*Lsite,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
   pop = pop/Ntraj
-  call MPI_ALLREDUCE(Ekin_PBME_l,Ekin_PBME,(Nt+2),MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+  call MPI_ALLREDUCE(Ekin_PBME_l,Ekin_PBME,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
   Ekin_PBME = Ekin_PBME/Ntraj
-  call MPI_ALLREDUCE(Etot_PBME_l,Etot_PBME,(Nt+2),MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+  call MPI_ALLREDUCE(Etot_PBME_l,Etot_PBME,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
   Etot_PBME = Etot_PBME/Ntraj
 
   if(myrank == 0)then
@@ -80,7 +81,7 @@ subroutine PBE_population(pop0)
   pop0 = 0d0
   do isite = 1,Lsite
     pop0(isite) = pop0(isite) &
-      + zweight0*0.5d0*(x_m(isite)**2 + p_m(isite)**2 -1d0) 
+         + 0.5d0*(x_m(isite)**2 + p_m(isite)**2 -1d0) 
   end do
 
 end subroutine PBE_population
@@ -109,7 +110,7 @@ subroutine PBE_Ekin(Ekin0,Etot0)
 
 
   zdensity_matrix = zdensity_matrix0*Hmat_kin
-  Ekin0 = zweight0*sum(zdensity_matrix)
+  Ekin0 = sum(zdensity_matrix)
 
 !  return
 
@@ -119,9 +120,9 @@ subroutine PBE_Ekin(Ekin0,Etot0)
   end do
 
 
-  zdensity_matrix = zdensity_matrix0*Htot_t
-  Etot0 = zweight0*sum(zdensity_matrix)
-  Etot0 = Etot0 + sum(0.5d0*V_HO**2/mass + 0.5d0*X_HO**2*omega0**2*mass)
+  zdensity_matrix = zdensity_matrix0 *Htot_t
+  Etot0 = sum(zdensity_matrix)
+  Etot0 = Etot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
 
 !  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
 !

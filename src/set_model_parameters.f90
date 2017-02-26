@@ -10,12 +10,12 @@ subroutine set_model_parameters
   Lsite = 12
   t0 = 1d0
   omega0 = 1d0
-  gamma = 0.1d0*sqrt(0.4d0)
+  gamma = sqrt(0.4d0)
   mass = 1d0
 
   Tph = -1d0
 
-  Ntraj = 10000
+  Ntraj = 1000
 
   dt = 0.01d0
 !  Nt = aint(30d0/dt)+1
