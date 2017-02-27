@@ -15,7 +15,7 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 1000
+  Ntraj = 100000
 
   dt = 0.01d0
 !  Nt = aint(30d0/dt)+1
@@ -27,7 +27,8 @@ subroutine set_model_parameters
 !  calc_mode = 'MTEF'
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
-  calc_mode = 'PBME'
+!  calc_mode = 'PBME'
+ calc_mode = 'FBTS'
 
 
 

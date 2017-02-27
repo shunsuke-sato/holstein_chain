@@ -26,6 +26,9 @@ program main
   case('PBME')
     call PBME_allocation
     call PBME_dynamics
+  case('FBTS')
+    call FBTS_allocation
+    call FBTS_dynamics
   case default
     call err_finalize('Invalid calc_mode')
   end select

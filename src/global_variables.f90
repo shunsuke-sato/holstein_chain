@@ -40,6 +40,9 @@ module global_variables
   complex(8),allocatable :: zweight_m(:,:)
   complex(8) :: zweight0
 
+! FBME
+  real(8),allocatable :: x_n(:),p_n(:)
+
 
 ! MPI
   include 'mpif.h'
