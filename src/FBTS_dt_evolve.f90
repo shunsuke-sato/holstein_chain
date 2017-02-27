@@ -13,7 +13,7 @@ subroutine FBTS_dt_evolve
   do i = 1,Lsite
     n_m(i) = 0.5d0*(x_m(i)**2 + p_m(i)**2)
     n_n(i) = 0.5d0*(x_n(i)**2 + p_n(i)**2)
-    n(i) = 0.5d0*(n_m(i) + n_n(i))
+    n(i) = 0.5d0*(n_m(i) + n_n(i)) - 1d0
     F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
   end do
 
@@ -41,9 +41,9 @@ subroutine FBTS_dt_evolve
   p_n(:) = p_n(:) - 0.5d0*dt*matmul(Htot_t(:,:),x_n(:))
 
   do i = 1,Lsite
-    n_m(i) = 0.5d0*(x_m(i)**2 + p_m(i)**2)
-    n_n(i) = 0.5d0*(x_n(i)**2 + p_n(i)**2)
-    n(i) = 0.5d0*(n_m(i) + n_n(i))
+    n_m(i) = 0.5d0*(x_m(i)**2 + p_m(i)**2 )
+    n_n(i) = 0.5d0*(x_n(i)**2 + p_n(i)**2 )
+    n(i) = 0.5d0*(n_m(i) + n_n(i)) - 1d0
     F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
   end do
 

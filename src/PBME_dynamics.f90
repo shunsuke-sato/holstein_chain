@@ -8,9 +8,10 @@ subroutine PBME_dynamics
   implicit none
   integer :: itraj,it
   integer :: isite
-  real(8) :: pop(0:Nt+1,Lsite),pop_l(0:Nt+1,Lsite),pop0(Lsite)
-  real(8) :: Ekin_PBME(0:Nt+1),Ekin_PBME_l(0:Nt+1),Ekin0_PBME
-  real(8) :: Etot_PBME(0:Nt+1),Etot_PBME_l(0:Nt+1),Etot0_PBME
+  real(8) :: pop(0:Nt+1,Lsite),pop_l(0:Nt+1,Lsite)
+  real(8) :: Ekin_PBME(0:Nt+1),Ekin_PBME_l(0:Nt+1)
+  real(8) :: Etot_PBME(0:Nt+1),Etot_PBME_l(0:Nt+1)
+  complex(8) :: zpop0(Lsite), zEkin0_PBME, zEtot0_PBME
   integer :: icout  = 0
 
   pop_l = 0d0
@@ -26,21 +27,21 @@ subroutine PBME_dynamics
       icout = icout + 1
     end if
 
-    call PBE_population(pop0)
-    pop_l(0,:) = pop_l(0,:)  + pop0(:)*zweight0
-    call PBE_Ekin(Ekin0_PBME,Etot0_PBME)
-    Ekin_PBME_l(0) = Ekin_PBME_l(0)  + Ekin0_PBME*zweight0
-    Etot_PBME_l(0) = Etot_PBME_l(0)  + Etot0_PBME*zweight0
+    call PBE_population(zpop0)
+    pop_l(0,:) = pop_l(0,:)  + zpop0(:)*zweight0
+    call PBE_Ekin(zEkin0_PBME,zEtot0_PBME)
+    Ekin_PBME_l(0) = Ekin_PBME_l(0)  + zEkin0_PBME*zweight0
+    Etot_PBME_l(0) = Etot_PBME_l(0)  + zEtot0_PBME*zweight0
 
 
     do it = 0,Nt
 
       call PBME_dt_evolve !_traceless
-      call PBE_population(pop0)
-      pop_l(it+1,:) = pop_l(it+1,:)  + pop0(:)*zweight0
-      call PBE_Ekin(Ekin0_PBME,Etot0_PBME)
-      Ekin_PBME_l(it+1) = Ekin_PBME_l(it+1)  + Ekin0_PBME*zweight0
-      Etot_PBME_l(it+1) = Etot_PBME_l(it+1)  + Etot0_PBME*zweight0
+      call PBE_population(zpop0)
+      pop_l(it+1,:) = pop_l(it+1,:)  + zpop0(:)*zweight0
+      call PBE_Ekin(zEkin0_PBME,zEtot0_PBME)
+      Ekin_PBME_l(it+1) = Ekin_PBME_l(it+1)  + zEkin0_PBME*zweight0
+      Etot_PBME_l(it+1) = Etot_PBME_l(it+1)  + zEtot0_PBME*zweight0
 
 
     end do
@@ -72,24 +73,24 @@ subroutine PBME_dynamics
 
 end subroutine PBME_dynamics
 !===============================================================================
-subroutine PBE_population(pop0)
+subroutine PBE_population(zpop0)
   use global_variables
   implicit none
-  real(8) :: pop0(Lsite)
+  complex(8) :: zpop0(Lsite)
   integer :: isite
 
-  pop0 = 0d0
+  zpop0 = 0d0
   do isite = 1,Lsite
-    pop0(isite) = pop0(isite) &
+     zpop0(isite) = zpop0(isite) &
          + 0.5d0*(x_m(isite)**2 + p_m(isite)**2 -1d0) 
   end do
 
 end subroutine PBE_population
 !===============================================================================
-subroutine PBE_Ekin(Ekin0,Etot0)
+subroutine PBE_Ekin(zEkin0,zEtot0)
   use global_variables
   implicit none
-  real(8) :: Ekin0,Etot0
+  complex(8) :: zEkin0,zEtot0
   complex(8) :: zdensity_matrix(Lsite,Lsite)
   complex(8) :: zdensity_matrix0(Lsite,Lsite)
   real(8) :: n(Lsite),Htot_t(Lsite,Lsite)
@@ -110,7 +111,7 @@ subroutine PBE_Ekin(Ekin0,Etot0)
 
 
   zdensity_matrix = zdensity_matrix0*Hmat_kin
-  Ekin0 = sum(zdensity_matrix)
+  zEkin0 = sum(zdensity_matrix)
 
 !  return
 
@@ -121,8 +122,13 @@ subroutine PBE_Ekin(Ekin0,Etot0)
 
 
   zdensity_matrix = zdensity_matrix0 *Htot_t
-  Etot0 = sum(zdensity_matrix)
-  Etot0 = Etot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
+  zEtot0 = sum(zdensity_matrix)
+
+  zs = 0d0
+  do i = 1,Lsite
+     zs = zs + zdensity_matrix0(i,i)
+  end do
+  zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)*zs
 
 !  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
 !
