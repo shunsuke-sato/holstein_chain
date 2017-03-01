@@ -13,10 +13,12 @@ subroutine FBTS_dynamics
   real(8) :: Etot_FBTS(0:Nt+1),Etot_FBTS_l(0:Nt+1)
   complex(8) :: zpop0(Lsite),zEkin0_FBTS,zEtot0_FBTS
   integer :: icout  = 0
+  real(8) :: Etot0
 
   pop_l = 0d0
   Ekin_FBTS_l = 0d0
   Etot_FBTS_l = 0d0
+
   do itraj = 1,Ntraj
 
 
@@ -33,6 +35,11 @@ subroutine FBTS_dynamics
     Ekin_FBTS_l(0) = Ekin_FBTS_l(0)  + zEkin0_FBTS*zweight0
     Etot_FBTS_l(0) = Etot_FBTS_l(0)  + zEtot0_FBTS*zweight0
 
+    if(itraj == 1)then
+      open(30,file="traj01.out")
+      call FBTS_calc_ene(Etot0)
+      write(30,"(999e26.16e3)")0d0,Etot0
+    end if
 
     do it = 0,Nt
 
@@ -43,8 +50,16 @@ subroutine FBTS_dynamics
       Ekin_FBTS_l(it+1) = Ekin_FBTS_l(it+1)  + zEkin0_FBTS*zweight0
       Etot_FBTS_l(it+1) = Etot_FBTS_l(it+1)  + zEtot0_FBTS*zweight0
 
+    if(itraj == 1)then
+      call FBTS_calc_ene(Etot0)
+      write(30,"(999e26.16e3)")dt*(it+1),Etot0
+    end if
 
     end do
+
+    if(itraj == 1)then
+      close(30)
+    end if
 
   end do
 
@@ -81,8 +96,7 @@ subroutine FBTS_population(zpop0)
 
   zpop0 = 0d0
   do isite = 1,Lsite
-    zpop0(isite) = zpop0(isite) + 0.5d0 &
-      *(x_m(isite) - zI * p_m(isite)) &
+    zpop0(isite) = zpop0(isite) + (x_m(isite) - zI * p_m(isite)) &
       *(x_n(isite) + zI * p_n(isite)) 
 
   end do
@@ -97,11 +111,12 @@ subroutine FBTS_Ekin(zEkin0,zEtot0)
   complex(8) :: zdensity_matrix0(Lsite,Lsite)
   real(8) :: n(Lsite),Htot_t(Lsite,Lsite)
   integer :: i,j
+  real(8) :: ss
   complex(8) :: zs
 
   do i = 1,Lsite
     do j = 1,Lsite
-      zdensity_matrix(i,j) = 0.5d0*(x_m(i) - zI * p_m(i)) * (x_n(j) + zI * p_n(j))
+      zdensity_matrix(i,j) = (x_m(i) - zI * p_m(i)) * (x_n(j) + zI * p_n(j))
     end do
   end do
 
@@ -118,14 +133,28 @@ subroutine FBTS_Ekin(zEkin0,zEtot0)
     Htot_t(i,i) = Htot_t(i,i) - gamma*sqrt(2d0*mass*omega0)*X_HO(i)
   end do
 
+  ss = sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
+  ss = ss - sum(  -gamma*sqrt(2d0*mass*omega0)*X_HO(:) ) ! traceless
+
+  do i = 1,Lsite
+    Htot_t(i,i) = Htot_t(i,i) + ss 
+  end do
+
 
   zdensity_matrix = zdensity_matrix0 *Htot_t
   zEtot0 = sum(zdensity_matrix)
-  zs = 0d0
-  do i = 1,Lsite
-    zs = zs + zdensity_matrix0(i,i)
-  end do
-  zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)*zs
+  return
+
+!  zs = 0d0
+!  do i = 1,Lsite
+!    zs = zs + zdensity_matrix0(i,i)
+!  end do
+!  zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)*zs
+!  zEtot0 = zEtot0 - sum(- gamma*sqrt(2d0*mass*omega0)*X_HO(:))*zs ! traceless
+
+
+!  zEtot0 =  sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)*zs
+
 
 !  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
 !

@@ -13,16 +13,16 @@ subroutine FBTS_initial_condition
 
   do isite = 1,Lsite
     call gaussian_random_number(xx,pp)
-    x_m(isite) = xx; p_m(isite) = pp
+    x_m(isite) = sqrt(0.5d0)*xx; p_m(isite) = sqrt(0.5d0)*pp
     call gaussian_random_number(xx,pp)
-    x_n(isite) = xx; p_n(isite) = pp
+    x_n(isite) = sqrt(0.5d0)*xx; p_n(isite) = sqrt(0.5d0)*pp
   end do
 
 
   
   do isite = 1,Lsite
     do jsite = 1,Lsite
-      zweight_m(isite,jsite) = 0.5d0*(x_m(isite) + zI * p_m(isite) )&
+      zweight_m(isite,jsite) = (x_m(isite) + zI * p_m(isite) )&
                               *(x_n(jsite) - zI * p_n(jsite) )
     end do
   end do
