@@ -29,6 +29,10 @@ program main
   case('FBTS')
     call FBTS_allocation
     call FBTS_dynamics
+  case('FBTS_K')
+    call FBTS_allocation
+    call FBTS_kernel
+    call GQME_dynamics
   case default
     call err_finalize('Invalid calc_mode')
   end select

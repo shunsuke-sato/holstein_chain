@@ -28,7 +28,8 @@ subroutine set_model_parameters
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
 !  calc_mode = 'PBME'
- calc_mode = 'FBTS'
+! calc_mode = 'FBTS'
+  calc_mode = 'FBTS_K'
 
 
 
