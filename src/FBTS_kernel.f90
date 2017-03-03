@@ -34,8 +34,8 @@ subroutine FBTS_kernel
 
 
     do j = 1,Lsite
-      zfact(1,j) = (x_m(1) + zI * p_m(1) )&
-                  *(x_n(j) - zI * p_n(j) )
+      zfact(1,j) = (x_m(j) + zI * p_m(j) )&
+                  *(x_n(1) - zI * p_n(1) )
       zfact(1,j) = zfact(1,j) &
         * ( (X_HO(1) - X_HO(j))  +zI*0.5d0*beta_KB*(V_HO(1)+V_HO(j)) )
     end do
@@ -63,6 +63,14 @@ subroutine FBTS_kernel
     do it = 0,Nt-1
 
       call FBTS_dt_evolve
+
+
+
+      do i = 1,Lsite
+         do j = 1,Lsite
+            zDM(i,j) = (x_m(i) - zI * p_m(i)) * (x_n(j) + zI * p_n(j))
+         end do
+      end do
 
       do b2 = 1,Lsite
         do a1=1,Lsite
