@@ -6,7 +6,7 @@
 subroutine evaluate_GQME_kernel_full
   use global_variables
   implicit none
-  integer,parameter :: Niter_scf = 30
+  integer,parameter :: Niter_scf = 10
   integer :: it,it2,iter_scf,i
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
   integer :: mod_table(-Lsite:Lsite)
@@ -24,6 +24,7 @@ subroutine evaluate_GQME_kernel_full
 ! evaluate K2
   zK2 = zK3
   zK2_tmp = zK2
+    write(*,"(A,2x,2e16.6e3)")"K3/K1",sum(abs(zK3)**2)/sum(abs(zK1)**2)
 
   do iter_scf = 1,Niter_scf
 
