@@ -124,10 +124,11 @@ subroutine PBE_Ekin(zEkin0,zEtot0)
   zdensity_matrix = zdensity_matrix0 *Htot_t
   zEtot0 = sum(zdensity_matrix)
 
-  zs = 0d0
-  do i = 1,Lsite
-     zs = zs + zdensity_matrix0(i,i)
-  end do
+!  zs = 0d0
+!  do i = 1,Lsite
+!     zs = zs + zdensity_matrix0(i,i)
+!  end do
+  zs = 1d0 ! Assuming trace of density matrix = 1
   zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)*zs
 
 !  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
