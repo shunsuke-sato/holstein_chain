@@ -36,6 +36,7 @@ module global_variables
   real(8) :: beta_KB
 
 ! PBME
+  character(len=20) :: PBME_flag = 'original'
   real(8),allocatable :: x_m(:),p_m(:)
   complex(8),allocatable :: zweight_m(:,:)
   complex(8) :: zweight0

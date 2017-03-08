@@ -15,19 +15,19 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 1000
+  Ntraj = 20000
 
   dt = 0.01d0
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
-  Nt = aint(10d0/dt)+1
+  Nt = aint(25d0/dt)+1
 
 !'MTEF', 'GQME_K'
 
 !  calc_mode = 'MTEF'
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
-  calc_mode = 'PBME'
+  calc_mode = 'PBME'; PBME_flag = 'consistent' ! 'original', 'consisten'
 ! calc_mode = 'FBTS'
 !  calc_mode = 'FBTS_K'
 
