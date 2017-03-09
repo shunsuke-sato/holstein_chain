@@ -40,6 +40,9 @@ module global_variables
   real(8),allocatable :: x_m(:),p_m(:)
   complex(8),allocatable :: zweight_m(:,:)
   complex(8) :: zweight0
+  real(8) :: x2_mean = -100d0,Etot_mod
+!  real(8) :: x2_max
+  
 
 ! FBME
   real(8),allocatable :: x_n(:),p_n(:)

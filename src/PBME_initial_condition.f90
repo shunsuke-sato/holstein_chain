@@ -7,7 +7,7 @@ subroutine PBME_initial_condition
   use global_variables
   implicit none
   integer :: isite,jsite
-  real(8) :: xx,pp
+  real(8) :: xx,pp,ss
 
   call set_initial_conditions_ph
 
@@ -15,6 +15,15 @@ subroutine PBME_initial_condition
     call gaussian_random_number(xx,pp)
     x_m(isite) = sqrt(0.5d0)*xx; p_m(isite) = sqrt(0.5d0)*pp
   end do
+
+
+!  if(x2_mean > 0d0)then
+!    ss = sum(x_m**2 + p_m**2)
+!    ss = sqrt(x2_mean/ss)
+!    x_m = x_m * ss
+!    p_m = p_m * ss
+!  end if
+
   
   do isite = 1,Lsite
     do jsite = 1,Lsite
@@ -25,6 +34,7 @@ subroutine PBME_initial_condition
     end do
   end do
   zweight_m = 2d0 * zweight_m
+
 
 !  zweight0 = zweight_m(1,1)
 !  return
@@ -41,5 +51,9 @@ subroutine PBME_initial_condition
 
     end do
   end do
+
+
+
+
 
 end subroutine PBME_initial_condition
