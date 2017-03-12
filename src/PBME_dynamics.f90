@@ -39,8 +39,10 @@ subroutine PBME_dynamics
       call PBE_population(zpop0)
       call PBE_Ekin(zEkin0_PBME,zEtot0_PBME)
     case('modified')
-      call PBE_M_population(zpop0)
-      call PBE_M_Ekin(zEkin0_PBME,zEtot0_PBME)
+!      call PBE_M_population(zpop0)
+!      call PBE_M_Ekin(zEkin0_PBME,zEtot0_PBME)
+      call PBE_M2_population(zpop0)
+      call PBE_M2_Ekin(zEkin0_PBME,zEtot0_PBME)
     case default
       stop 'Invalid PBME_flag'
     end select
@@ -57,7 +59,8 @@ subroutine PBME_dynamics
       case('consistent')
         call PBME_C_dt_evolve_quantum !_traceless
       case('modified')
-        call PBME_M_dt_evolve_quantum !_traceless
+!        call PBME_M_dt_evolve_quantum !_traceless
+        call PBME_M2_dt_evolve_quantum !_traceless
       case default
           stop 'Invalid PBME_flag'
       end select
@@ -68,8 +71,10 @@ subroutine PBME_dynamics
         call PBE_population(zpop0)
         call PBE_Ekin(zEkin0_PBME,zEtot0_PBME)
       case('modified')
-        call PBE_M_population(zpop0)
-        call PBE_M_Ekin(zEkin0_PBME,zEtot0_PBME)
+!        call PBE_M_population(zpop0)
+!        call PBE_M_Ekin(zEkin0_PBME,zEtot0_PBME)
+        call PBE_M2_population(zpop0)
+        call PBE_M2_Ekin(zEkin0_PBME,zEtot0_PBME)
       case default
           stop 'Invalid PBME_flag'
       end select
@@ -141,14 +146,30 @@ subroutine PBE_M_population(zpop0)
 !         + (x_m(isite)**2 + p_m(isite)**2 -0.5d0) * X_HO(isite)
   end do
   zpop0 = zpop0*weight
-  x2 = x2 * weight
-
-  do isite = 1,Lsite
-     zpop0(isite) = x2*0.5d0*(X_HO(isite)**2 + V_HO(isite)**2 )
-  end do
 
 
 end subroutine PBE_M_population
+!===============================================================================
+subroutine PBE_M2_population(zpop0)
+  use global_variables
+  implicit none
+  complex(8) :: zpop0(Lsite)
+  real(8) :: x2,weight,r2
+  integer :: isite
+
+  x2 = sum(x_m**2 + p_m**2)
+
+  zpop0 = 0d0
+  do isite = 1,Lsite
+    r2 = x_m(isite)**2 + p_m(isite)**2
+     zpop0(isite) = zpop0(isite) &
+         + 0.5d0*(r2 -1d0) &
+         - dble(2**(Lsite+1))*exp(-x2) &
+         *(2d0*r2**2 - 4d0*r2 + 1d0)
+  end do
+
+
+end subroutine PBE_M2_population
 !===============================================================================
 subroutine PBE_Ekin(zEkin0,zEtot0)
   use global_variables
@@ -261,4 +282,62 @@ subroutine PBE_M_Ekin(zEkin0,zEtot0)
 !  end do
 
 end subroutine PBE_M_Ekin
+!===============================================================================
+subroutine PBE_M2_Ekin(zEkin0,zEtot0)
+  use global_variables
+  implicit none
+  complex(8) :: zEkin0,zEtot0
+  complex(8) :: zdensity_matrix(Lsite,Lsite)
+  complex(8) :: zdensity_matrix0(Lsite,Lsite)
+  real(8) :: n(Lsite),Htot_t(Lsite,Lsite)
+  integer :: i,j
+  complex(8) :: zs
+  real(8) :: x2,weight
+
+  x2 = sum(x_m**2 + p_m**2)
+  weight = 2**(Lsite+1)*exp(-x2)
+
+  do i = 1,Lsite
+    do j = 1,Lsite
+      if(i /= j)then
+        zdensity_matrix(i,j) = 0.5d0*(x_m(i)*x_m(j) + p_m(i)*p_m(j)) &
+          -2d0*weight*(x_m(i)*x_m(j) + p_m(i)*p_m(j)) &
+          *(x_m(i)**2 + p_m(i)**2 + x_m(j)**2 + p_m(j)**2 - 2d0)
+      else
+        zdensity_matrix(i,j) = 0.5d0*(x_m(i)*x_m(j) + p_m(i)*p_m(j) -1d0) &
+          -weight*((2d0*(x_m(i)**2 + p_m(i)**2))**2  &
+          -4d0*(x_m(i)**2 + p_m(i)**2) + 1d0 )
+      end if
+
+    end do
+  end do
+
+  zdensity_matrix0 = zdensity_matrix
+
+
+  zdensity_matrix = zdensity_matrix0*Hmat_kin
+  zEkin0 = sum(zdensity_matrix)
+
+!  return
+
+  Htot_t = Hmat_kin
+  do i = 1,Lsite
+    Htot_t(i,i) = Htot_t(i,i) - gamma*sqrt(2d0*mass*omega0)*X_HO(i)
+  end do
+
+
+  zdensity_matrix = zdensity_matrix0 *Htot_t
+  zEtot0 = sum(zdensity_matrix)
+
+  zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
+!  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
+!
+!  Ekin0 = 0d0
+!  do i = 1,Lsite
+!    do j = 1,Lsite
+!      Ekin0 = Ekin0 + zdensity_matrix(j,i)*zweight_m(j,i)
+!    end do
+!  end do
+
+end subroutine PBE_M2_Ekin
 
