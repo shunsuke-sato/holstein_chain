@@ -191,7 +191,7 @@ subroutine PBE_Ekin(zEkin0,zEtot0)
   do i = 1,Lsite
      zs = zs + zdensity_matrix0(i,i)
   end do
-  zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)*zs
+  zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass) !*zs
   
 !  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
 !
