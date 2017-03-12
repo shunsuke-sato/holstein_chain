@@ -199,10 +199,10 @@ subroutine PBME_M2_dt_evolve_quantum
   implicit none
   real(8) :: n(Lsite),Htot_t(Lsite,Lsite),ntot,Eb1,Eb2,Es
   real(8) :: Hmat_t(Lsite,Lsite),Hmat_t_old(Lsite,Lsite)
-  real(8) :: V_HO_tmp(Lsite),Etot_t
+  real(8) :: X_HO_tmp(Lsite),Etot_t
   real(8) :: x2,weight,fact1,fact2,fact
   real(8) :: dt_t,r2
-  integer :: i,j,Nt_t,it_t
+  integer :: i,j,Nt_t,it_t,it_corr
   complex(8) :: z_m(Lsite),z_t(Lsite),zh_t(Lsite),zfact
   complex(8) :: z_m_old(Lsite)
   integer,parameter :: NTaylor=6
@@ -210,10 +210,10 @@ subroutine PBME_M2_dt_evolve_quantum
 
   x2 = sum(x_m**2 + p_m**2)
   weight = 2**(Lsite+1)*exp(-x2)
-  fact1  = 2**(Lsite+1)*exp(-x2)
+  fact1  = 2**(Lsite+4)*exp(-x2)
 !  fact2  = 2**(Lsite+1)*exp(-x2)*abs(x2-dble(Lsite)*0.5d0)
 !  fact = max(fact1,fact2)*10d0
-  fact = fact1*50d0
+  fact = fact1*20d0
   Nt_t = aint(fact)+1
   dt_t = dt/Nt_t
 
@@ -232,38 +232,38 @@ subroutine PBME_M2_dt_evolve_quantum
     V_HO = V_HO +0.5d0*dt_t*F_HO/mass
 
     call construct_hamiltonian
-    Hmat_t_old = Hmat_t
-    z_m_old = z_m
     
+
+
     zfact = 1d0
     z_t = z_m
     do iexp = 1,NTaylor
-      zfact = zfact*(-zI*dt_t)/iexp
+      zfact = zfact*(-zI*dt_t*0.5d0)/iexp
       call apply_hamiltonian
       z_m = z_m + zfact*zh_t
       z_t = zh_t
     end do
-    z_t = z_m
-    
 
+    z_m_old = z_m    
     X_HO = X_HO + V_HO*dt_t
-
     call construct_hamiltonian
-    Hmat_t = 0.5d0 * (Hmat_t + Hmat_t_old)
-    z_m = z_m_old
 
-    zfact = 1d0
-    z_t = z_m
-    do iexp = 1,NTaylor
-      zfact = zfact*(-zI*dt_t)/iexp
-      call apply_hamiltonian
-      z_m = z_m + zfact*zh_t
-      z_t = zh_t
-    end do    
+    do it_corr = 1,3
+       z_m = z_m_old
 
+       zfact = 1d0
+       z_t = z_m
+       do iexp = 1,NTaylor
+          zfact = zfact*(-zI*dt_t*0.5d0)/iexp
+          call apply_hamiltonian
+          z_m = z_m + zfact*zh_t
+          z_t = zh_t
+       end do
+       
+       call construct_hamiltonian
+    end do
 
     x_m = real(z_m); p_m = aimag(z_m)
-
 
     do i = 1,Lsite
       r2 = x_m(i)**2 + p_m(i)**2
@@ -280,8 +280,9 @@ contains
   subroutine construct_hamiltonian
     implicit none
     integer :: i,j
-    real(8) :: ss,ss0,bvec(Lsite)
+    real(8) :: ss,ss0,bvec(Lsite),x2
 
+    x2 = sum(x_m**2 + p_m**2)
     ss0 = 2**(Lsite+3)*exp(-x2)
 
     Hmat_t = Hmat_kin
@@ -296,12 +297,13 @@ contains
       j = mod(i+1 + Lsite -1, Lsite) +1
       bvec(i) = bvec(i) + Hmat_t(i,j)*(x_m(i)*x_m(j) + p_m(i)*p_m(j))
     end do
+    bvec = bvec * 2d0 * ss0
 
     do i = 1,Lsite
 
       j = i
-      ss = 1d0 - ss0*(2d0*(x_m(i)**2 + p_m(i)**2) -2d0 + bvec(i))
-      Hmat_t(i,i) = Hmat_t(i,i)*ss
+      ss = 1d0 - ss0*(2d0*(x_m(i)**2 + p_m(i)**2) -2d0)
+      Hmat_t(i,i) = Hmat_t(i,i)*ss - bvec(i)
 
       j = mod(i-1 + Lsite -1, Lsite) +1
       ss = 1d0 - ss0*(x_m(i)**2 + x_m(j)**2 + p_m(i)**2 + p_m(j)**2 -2d0 )
@@ -320,16 +322,17 @@ contains
     integer :: i,j
     real(8) :: ss,ss0
 
-! check unitarity
-    zh_t(1) = Hmat_t(1,Lsite)*z_t(Lsite) + Hmat_t(1,1)*z_t(1) + Hmat_t(1,Lsite)*z_t(2)
-    do i = 2,Lsite-1
-      zh_t(i) = Hmat_t(i,i-1)*z_t(i-1) + Hmat_t(i,i)*z_t(i) + Hmat_t(i,i-1)*z_t(i+1)
-    end do
-    zh_t(Lsite) = Hmat_t(Lsite,Lsite-1)*z_t(Lsite-1) + Hmat_t(Lsite,Lsite)*z_t(Lsite) &
-      + Hmat_t(Lsite,Lsite-1)*z_t(1)
+!! check unitarity
+!    zh_t(1) = Hmat_t(1,Lsite)*z_t(Lsite) + Hmat_t(1,1)*z_t(1) + Hmat_t(1,Lsite)*z_t(2)
+!    do i = 2,Lsite-1
+!      zh_t(i) = Hmat_t(i,i-1)*z_t(i-1) + Hmat_t(i,i)*z_t(i) + Hmat_t(i,i-1)*z_t(i+1)
+!    end do
+!    zh_t(Lsite) = Hmat_t(Lsite,Lsite-1)*z_t(Lsite-1) + Hmat_t(Lsite,Lsite)*z_t(Lsite) &
+!      + Hmat_t(Lsite,Lsite-1)*z_t(1)
+!
+!
+!    return
 
-
-    return
     zh_t(1) = Hmat_t(1,Lsite)*z_t(Lsite) + Hmat_t(1,1)*z_t(1) + Hmat_t(1,2)*z_t(2)
     do i = 2,Lsite-1
       zh_t(i) = Hmat_t(i,i-1)*z_t(i-1) + Hmat_t(i,i)*z_t(i) + Hmat_t(i,i+1)*z_t(i+1)

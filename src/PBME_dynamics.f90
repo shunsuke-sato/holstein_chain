@@ -305,7 +305,7 @@ subroutine PBE_M2_Ekin(zEkin0,zEtot0)
           *(x_m(i)**2 + p_m(i)**2 + x_m(j)**2 + p_m(j)**2 - 2d0)
       else
         zdensity_matrix(i,j) = 0.5d0*(x_m(i)*x_m(j) + p_m(i)*p_m(j) -1d0) &
-          -weight*((2d0*(x_m(i)**2 + p_m(i)**2))**2  &
+          -weight*(2d0*(x_m(i)**2 + p_m(i)**2)**2  &
           -4d0*(x_m(i)**2 + p_m(i)**2) + 1d0 )
       end if
 
@@ -330,6 +330,8 @@ subroutine PBE_M2_Ekin(zEkin0,zEtot0)
   zEtot0 = sum(zdensity_matrix)
 
   zEtot0 = zEtot0 + sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
+!  zEtot0 =  sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
+
 !  Ekin0 = zweight0*sum(density_matrix*Hmat_kin)
 !
 !  Ekin0 = 0d0

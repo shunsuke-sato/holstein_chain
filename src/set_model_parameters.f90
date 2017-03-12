@@ -7,7 +7,7 @@ subroutine set_model_parameters
   use global_variables
   implicit none
 
-  Lsite = 4 !12
+  Lsite = 12
   t0 = 1d0
   omega0 = 1d0
   gamma = sqrt(0.4d0)
@@ -21,7 +21,7 @@ subroutine set_model_parameters
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
-  Nt = aint(5d0/dt)+1
+  Nt = aint(25d0/dt)+1
 
 !'MTEF', 'GQME_K'
 
