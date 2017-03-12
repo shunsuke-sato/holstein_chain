@@ -213,7 +213,7 @@ subroutine PBME_M2_dt_evolve_quantum
   fact1  = 2**(Lsite+1)*exp(-x2)
 !  fact2  = 2**(Lsite+1)*exp(-x2)*abs(x2-dble(Lsite)*0.5d0)
 !  fact = max(fact1,fact2)*10d0
-  fact = fact1*20d0
+  fact = fact1*50d0
   Nt_t = aint(fact)+1
   dt_t = dt/Nt_t
 
@@ -304,12 +304,12 @@ contains
       Hmat_t(i,i) = Hmat_t(i,i)*ss
 
       j = mod(i-1 + Lsite -1, Lsite) +1
-      ss = 1d0 - ss0*(x_m(i)**2 + x_m(j)**2 + x_m(i)*x_m(j) -2d0 )
+      ss = 1d0 - ss0*(x_m(i)**2 + x_m(j)**2 + p_m(i)**2 + p_m(j)**2 -2d0 )
 
       Hmat_t(i,j) = Hmat_t(i,j)*ss
 
       j = mod(i+1 + Lsite -1, Lsite) +1
-      ss = 1d0 - ss0*(x_m(i)**2 + x_m(j)**2 + x_m(i)*x_m(j) -2d0 )
+      ss = 1d0 - ss0*(x_m(i)**2 + x_m(j)**2 + p_m(i)**2 + p_m(j)**2 -2d0 )
 
       Hmat_t(i,j) = Hmat_t(i,j)*ss
     end do
@@ -320,13 +320,23 @@ contains
     integer :: i,j
     real(8) :: ss,ss0
 
+! check unitarity
+    zh_t(1) = Hmat_t(1,Lsite)*z_t(Lsite) + Hmat_t(1,1)*z_t(1) + Hmat_t(1,Lsite)*z_t(2)
+    do i = 2,Lsite-1
+      zh_t(i) = Hmat_t(i,i-1)*z_t(i-1) + Hmat_t(i,i)*z_t(i) + Hmat_t(i,i-1)*z_t(i+1)
+    end do
+    zh_t(Lsite) = Hmat_t(Lsite,Lsite-1)*z_t(Lsite-1) + Hmat_t(Lsite,Lsite)*z_t(Lsite) &
+      + Hmat_t(Lsite,Lsite-1)*z_t(1)
 
+
+    return
     zh_t(1) = Hmat_t(1,Lsite)*z_t(Lsite) + Hmat_t(1,1)*z_t(1) + Hmat_t(1,2)*z_t(2)
     do i = 2,Lsite-1
       zh_t(i) = Hmat_t(i,i-1)*z_t(i-1) + Hmat_t(i,i)*z_t(i) + Hmat_t(i,i+1)*z_t(i+1)
     end do
     zh_t(Lsite) = Hmat_t(Lsite,Lsite-1)*z_t(Lsite-1) + Hmat_t(Lsite,Lsite)*z_t(Lsite) &
       + Hmat_t(Lsite,1)*z_t(1)
+
 
   end subroutine apply_hamiltonian
     

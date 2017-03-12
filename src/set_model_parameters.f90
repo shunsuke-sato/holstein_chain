@@ -15,7 +15,7 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 1000
+  Ntraj = 100
 
   dt = 0.001d0
 !  Nt = aint(30d0/dt)+1
