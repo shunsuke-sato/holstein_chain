@@ -18,7 +18,8 @@ module global_variables
   real(8) :: t0,gamma,mass,omega0,Tph
   complex(8),allocatable :: zC(:)
   real(8),allocatable :: Hmat_kin(:,:),Hmat_coup(:,:),Hmat_tot(:,:)
-  real(8),allocatable :: X_HO(:),V_HO(:),F_HO(:),X_HO_new(:),X_HO_old(:)
+  real(8),allocatable :: X_HO(:),V_HO(:),F_HO(:)
+  real(8),allocatable :: X_HO_new(:),X_HO_old(:),V_HO_new(:),V_HO_old(:),F_HO_old(:)
 
 ! Multi-trajectory
   integer :: Ntraj

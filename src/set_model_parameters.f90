@@ -15,13 +15,13 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 100
+  Ntraj = 1000
 
-  dt = 0.001d0
+  dt = 0.005d0
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
-  Nt = aint(25d0/dt)+1
+  Nt = aint(5d0/dt)+1
 
 !'MTEF', 'GQME_K'
 

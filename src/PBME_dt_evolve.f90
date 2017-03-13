@@ -200,6 +200,8 @@ subroutine PBME_M2_dt_evolve_quantum
   real(8) :: n(Lsite),Htot_t(Lsite,Lsite),ntot,Eb1,Eb2,Es
   real(8) :: Hmat_t(Lsite,Lsite),Hmat_t_old(Lsite,Lsite)
   real(8) :: X_HO_tmp(Lsite),Etot_t
+  real(8) :: B_tmp(Lsite),C_tmp(Lsite)
+  real(8) :: X0cosPhi(Lsite),X0sinPhi(Lsite)
   real(8) :: x2,weight,fact1,fact2,fact
   real(8) :: dt_t,r2
   integer :: i,j,Nt_t,it_t,it_corr
@@ -213,26 +215,26 @@ subroutine PBME_M2_dt_evolve_quantum
   fact1  = 2**(Lsite+4)*exp(-x2)
 !  fact2  = 2**(Lsite+1)*exp(-x2)*abs(x2-dble(Lsite)*0.5d0)
 !  fact = max(fact1,fact2)*10d0
-  fact = fact1*20d0
+  fact = fact1*10d0
   Nt_t = aint(fact)+1
   dt_t = dt/Nt_t
 
+  z_m = x_m + zI * p_m
+
   do it_t = 1,Nt_t
 
-    z_m = x_m + zI * p_m
+
     
     do i = 1,Lsite
-      r2 = x_m(i)**2 + p_m(i)**2
+      r2 = abs(z_m(i))**2
       n(i) = 0.5d0*(r2 -1d0) - weight * (2d0 * r2**2 -4d0 * r2 + 1d0)
       F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i)
     end do
 
-    F_HO(:) = F_HO(:) - omega0**2*mass*X_HO(:)
-    
-    V_HO = V_HO +0.5d0*dt_t*F_HO/mass
-
+    X_HO_old = X_HO
+    V_HO_old = V_HO
+    F_HO_old = F_HO
     call construct_hamiltonian
-    
 
 
     zfact = 1d0
@@ -245,42 +247,64 @@ subroutine PBME_M2_dt_evolve_quantum
     end do
 
     z_m_old = z_m    
-    X_HO = X_HO + V_HO*dt_t
-    call construct_hamiltonian
+
+
+    C_tmp = F_HO_old/mass
+    B_tmp = 0d0
+
+    V_HO = V_HO +0.5d0*dt_t*F_HO/mass
+
+    X0cosPhi = X_HO_old - C_tmp
+    X0sinPhi = -(V_HO_old - B_tmp)/omega0
+    X_HO = X0cosPhi*cos(omega0*dt_t) - X0sinPhi*sin(omega0*dt_t) + C_tmp + B_tmp*dt_t
+    V_HO = -omega0*X0sinPhi*cos(omega0*dt_t) - omega0*X0cosPhi*sin(omega0*dt_t) + B_tmp
+
+
 
     do it_corr = 1,3
-       z_m = z_m_old
+      call construct_hamiltonian
+      z_m = z_m_old
 
-       zfact = 1d0
-       z_t = z_m
-       do iexp = 1,NTaylor
-          zfact = zfact*(-zI*dt_t*0.5d0)/iexp
-          call apply_hamiltonian
-          z_m = z_m + zfact*zh_t
-          z_t = zh_t
-       end do
+      zfact = 1d0
+      z_t = z_m
+      do iexp = 1,NTaylor
+        zfact = zfact*(-zI*dt_t*0.5d0)/iexp
+        call apply_hamiltonian
+        z_m = z_m + zfact*zh_t
+        z_t = zh_t
+      end do
        
-       call construct_hamiltonian
+
+
+      do i = 1,Lsite
+        r2 = abs(z_m(i))**2
+        n(i) = 0.5d0*(r2 -1d0) - weight * (2d0 * r2**2 -4d0 * r2 + 1d0)
+        F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i)
+      end do
+
+      C_tmp = 0.5d0*(F_HO + F_HO_old)/mass
+      B_tmp = (F_HO - F_HO_old)/mass/dt_t
+      X0cosPhi = X_HO_old - C_tmp
+      X0sinPhi = -(V_HO_old - B_tmp)/omega0
+      X_HO = X0cosPhi*cos(omega0*dt_t) - X0sinPhi*sin(omega0*dt_t) + C_tmp + B_tmp*dt_t
+      V_HO = -omega0*X0sinPhi*cos(omega0*dt_t) - omega0*X0cosPhi*sin(omega0*dt_t) + B_tmp
+
     end do
 
-    x_m = real(z_m); p_m = aimag(z_m)
-
-    do i = 1,Lsite
-      r2 = x_m(i)**2 + p_m(i)**2
-      n(i) = 0.5d0*(r2 -1d0) - weight * (2d0 * r2**2 -4d0 * r2 + 1d0)
-      F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i)
-    end do
-    F_HO(:) = F_HO(:) - omega0**2*mass*X_HO(:)! *ntot
-    
-    V_HO = V_HO +0.5d0*dt_t*F_HO/mass
-    
   end do
+
+  x_m = real(z_m)
+  p_m = aimag(z_m)
 
 contains
   subroutine construct_hamiltonian
     implicit none
     integer :: i,j
     real(8) :: ss,ss0,bvec(Lsite),x2
+    real(8) :: x_m(Lsite),p_m(Lsite)
+
+    x_m = real(z_m)
+    p_m = aimag(z_m)
 
     x2 = sum(x_m**2 + p_m**2)
     ss0 = 2**(Lsite+3)*exp(-x2)

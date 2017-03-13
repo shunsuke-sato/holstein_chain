@@ -37,7 +37,7 @@ program main
     call err_finalize('Invalid calc_mode')
   end select
 
-
+  write(*,*)"Finish myrank=",myrank
   call MPI_finalize(ierr)
 
 end program main
