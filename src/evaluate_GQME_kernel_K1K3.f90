@@ -98,7 +98,7 @@ subroutine evaluate_GQME_kernel_K1K3
       if(mod(itraj,Nprocs) /= myrank)cycle
 
       zfact = (X_HO(1) - X_HO(jsite))  -zI*0.5d0*beta_KB*(V_HO(1)+V_HO(jsite))
-      zfact = zfact*zC(1)*conjg(zC(jsite))
+      zfact = zfact/(zC(1)*conjg(zC(jsite)))
       
 ! == Kernel calc (1,jsite) ==
       do a1=1,Lsite
@@ -139,7 +139,7 @@ subroutine evaluate_GQME_kernel_K1K3
         MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(zK3_tmp_l,zK3_tmp,(Nt+1)*Lsite**2 &
         ,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
-      zK1_tmp = zK1_tmp/dble(Ntraj)*2**2;   zK3_tmp = zK3_tmp/dble(Ntraj)*2**2
+      zK1_tmp = zK1_tmp/dble(Ntraj);   zK3_tmp = zK3_tmp/dble(Ntraj)
       zK1(:,:,1,jsite,:) = zK1_tmp(:,:,:); zK3(:,:,1,jsite,:) = zK3_tmp(:,:,:)
   end do
 
