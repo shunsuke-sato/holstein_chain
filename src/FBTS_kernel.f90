@@ -36,8 +36,12 @@ subroutine FBTS_kernel
     do j = 1,Lsite
       zfact(1,j) = (x_m(j) + zI * p_m(j) )&
                   *(x_n(1) - zI * p_n(1) )
+!      zfact(1,j) = zfact(1,j) &
+!        * ( (X_HO(1) - X_HO(j))  +zI*0.5d0*beta_KB*(V_HO(1)+V_HO(j)) )
+
       zfact(1,j) = zfact(1,j) &
-        * ( (X_HO(1) - X_HO(j))  +zI*0.5d0*beta_KB*(V_HO(1)+V_HO(j)) )
+        * ( (X_HO(1) - X_HO(j))  -zI*0.5d0*beta_KB*(V_HO(1)+V_HO(j)) )
+
     end do
 
     do i = 1,Lsite
