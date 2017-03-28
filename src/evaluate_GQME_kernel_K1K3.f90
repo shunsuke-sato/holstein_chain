@@ -32,16 +32,16 @@ subroutine evaluate_GQME_kernel_K1K3
     X_HO_old = X_HO - V_HO*dt +0.5d0*F_HO/mass*dt**2
     if(mod(itraj,Nprocs) /= myrank)cycle
 
-    zfact = +zI*beta_KB*V_HO(1)
+    zfact = -zI*beta_KB*V_HO(1)
 
 ! == Kernel calc (1,1) ==
     do a1=1,Lsite
     do a2=1,Lsite
       zK1_tmp_l(a1,a2,0) = zK1_tmp_l(a1,a2,0) &
-        +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+        +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
         *(X_HO(a1) - X_HO(a2))*zfact
       zK3_tmp_l(a1,a2,0) = zK3_tmp_l(a1,a2,0) &
-        -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+        -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
     end do
     end do
 ! == Kernel calc (1,1) ==
@@ -58,10 +58,10 @@ subroutine evaluate_GQME_kernel_K1K3
       do a1=1,Lsite
       do a2=1,Lsite
          zK1_tmp_l(a1,a2,it+1) = zK1_tmp_l(a1,a2,it+1) &
-              +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+              +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
               *(X_HO(a1) - X_HO(a2))*zfact
          zK3_tmp_l(a1,a2,it+1) = zK3_tmp_l(a1,a2,it+1) &
-              -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+              -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
       end do
       end do
 ! == Kernel calc (1,1) ==
@@ -97,17 +97,17 @@ subroutine evaluate_GQME_kernel_K1K3
 
       if(mod(itraj,Nprocs) /= myrank)cycle
 
-      zfact = (X_HO(1) - X_HO(jsite))  +zI*0.5d0*beta_KB*(V_HO(1)+V_HO(jsite))
-      zfact = zfact*zC(1)*conjg(zC(jsite))
+      zfact = (X_HO(1) - X_HO(jsite))  -zI*0.5d0*beta_KB*(V_HO(1)+V_HO(jsite))
+      zfact = zfact/(zC(1)*conjg(zC(jsite)))
       
 ! == Kernel calc (1,jsite) ==
       do a1=1,Lsite
       do a2=1,Lsite
         zK1_tmp_l(a1,a2,0) = zK1_tmp_l(a1,a2,0) &
-          +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+          +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
           *(X_HO(a1) - X_HO(a2))*zfact
         zK3_tmp_l(a1,a2,0) = zK3_tmp_l(a1,a2,0) &
-          -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+          -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
        end do
        end do
 ! == Kernel calc (1,jsite) ==
@@ -124,10 +124,10 @@ subroutine evaluate_GQME_kernel_K1K3
          do a1=1,Lsite
          do a2=1,Lsite
             zK1_tmp_l(a1,a2,it+1) = zK1_tmp_l(a1,a2,it+1) &
-                 +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+                 +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
                  *(X_HO(a1) - X_HO(a2))*zfact
             zK3_tmp_l(a1,a2,it+1) = zK3_tmp_l(a1,a2,it+1) &
-                 -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+                 -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
          end do
          end do
 ! == Kernel calc (1,jsite) ==
@@ -139,7 +139,7 @@ subroutine evaluate_GQME_kernel_K1K3
         MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(zK3_tmp_l,zK3_tmp,(Nt+1)*Lsite**2 &
         ,MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
-      zK1_tmp = zK1_tmp/dble(Ntraj)*2**2;   zK3_tmp = zK3_tmp/dble(Ntraj)*2**2
+      zK1_tmp = zK1_tmp/dble(Ntraj);   zK3_tmp = zK3_tmp/dble(Ntraj)
       zK1(:,:,1,jsite,:) = zK1_tmp(:,:,:); zK3(:,:,1,jsite,:) = zK3_tmp(:,:,:)
   end do
 
