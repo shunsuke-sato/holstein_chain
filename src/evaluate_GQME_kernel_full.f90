@@ -6,7 +6,7 @@
 subroutine evaluate_GQME_kernel_full
   use global_variables
   implicit none
-  integer,parameter :: Niter_scf = 10
+  integer,parameter :: Niter_scf = 20
   integer :: it,it2,iter_scf,i
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
   integer :: mod_table(-Lsite:Lsite)

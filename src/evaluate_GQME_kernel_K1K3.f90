@@ -38,10 +38,10 @@ subroutine evaluate_GQME_kernel_K1K3
     do a1=1,Lsite
     do a2=1,Lsite
       zK1_tmp_l(a1,a2,0) = zK1_tmp_l(a1,a2,0) &
-        +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+        +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
         *(X_HO(a1) - X_HO(a2))*zfact
       zK3_tmp_l(a1,a2,0) = zK3_tmp_l(a1,a2,0) &
-        -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+        -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
     end do
     end do
 ! == Kernel calc (1,1) ==
@@ -58,10 +58,10 @@ subroutine evaluate_GQME_kernel_K1K3
       do a1=1,Lsite
       do a2=1,Lsite
          zK1_tmp_l(a1,a2,it+1) = zK1_tmp_l(a1,a2,it+1) &
-              +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+              +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
               *(X_HO(a1) - X_HO(a2))*zfact
          zK3_tmp_l(a1,a2,it+1) = zK3_tmp_l(a1,a2,it+1) &
-              -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+              -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
       end do
       end do
 ! == Kernel calc (1,1) ==
@@ -104,10 +104,10 @@ subroutine evaluate_GQME_kernel_K1K3
       do a1=1,Lsite
       do a2=1,Lsite
         zK1_tmp_l(a1,a2,0) = zK1_tmp_l(a1,a2,0) &
-          +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+          +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
           *(X_HO(a1) - X_HO(a2))*zfact
         zK3_tmp_l(a1,a2,0) = zK3_tmp_l(a1,a2,0) &
-          -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+          -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
        end do
        end do
 ! == Kernel calc (1,jsite) ==
@@ -124,10 +124,10 @@ subroutine evaluate_GQME_kernel_K1K3
          do a1=1,Lsite
          do a2=1,Lsite
             zK1_tmp_l(a1,a2,it+1) = zK1_tmp_l(a1,a2,it+1) &
-                 +gamma**2*2d0*mass*omega0*zC(a2)*conjg(zC(a1)) &
+                 +gamma**2*2d0*mass*omega0*zC(a1)*conjg(zC(a2)) &
                  *(X_HO(a1) - X_HO(a2))*zfact
             zK3_tmp_l(a1,a2,it+1) = zK3_tmp_l(a1,a2,it+1) &
-                 -gamma*sqrt(2d0*mass*omega0)*zC(a2)*conjg(zC(a1))*zfact
+                 -gamma*sqrt(2d0*mass*omega0)*zC(a1)*conjg(zC(a2))*zfact
          end do
          end do
 ! == Kernel calc (1,jsite) ==
