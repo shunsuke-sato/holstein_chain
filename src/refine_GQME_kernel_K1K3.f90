@@ -40,7 +40,7 @@ subroutine refine_GQME_kernel_K1K3
         b1i = mod(1-(b2-1) -1 + 2*Lsite,Lsite) +1
     
         zK1_tmp(a1,a2,1,b2,:) = 0.5d0*(zK1(a1,a2,1,b2,:) + conjg(zK1(a2i,a1i,1,b1i,:)) )
-        zK3_tmp(a1,a2,1,b2,:) = 0.5d0*(zK3(a1,a2,1,b2,:) + conjg(zK3(a2i,a1i,1,b1i,:)) )
+        zK3_tmp(a1,a2,1,b2,:) = 0.5d0*(zK3(a1,a2,1,b2,:) - conjg(zK3(a2i,a1i,1,b1i,:)) )
         
       end do
     end do
