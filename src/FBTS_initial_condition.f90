@@ -6,8 +6,9 @@
 subroutine FBTS_initial_condition
   use global_variables
   implicit none
-  integer :: isite,jsite
+  integer :: isite,jsite,i
   real(8) :: xx,pp
+  real(8) :: n_m(Lsite),n_n(Lsite),n(Lsite)
 
   call set_initial_conditions_ph
 
@@ -17,6 +18,16 @@ subroutine FBTS_initial_condition
     call gaussian_random_number(xx,pp)
     x_n(isite) = sqrt(0.5d0)*xx; p_n(isite) = sqrt(0.5d0)*pp
   end do
+
+! Initial condition for phonon-bath
+  do i = 1,Lsite
+    n_m(i) = 0.5d0*(x_m(i)**2 + p_m(i)**2)
+    n_n(i) = 0.5d0*(x_n(i)**2 + p_n(i)**2)
+!    n(i) = n_m(i) + n_n(i) ! with trace
+    n(i) = n_m(i) + n_n(i) - 1.0d0 ! traceless
+    F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
+  end do
+  X_HO_old = X_HO - V_HO*dt +0.5d0*F_HO/mass*dt**2
 
 
   
