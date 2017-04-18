@@ -68,6 +68,8 @@ subroutine FBTS_dt_evolve_quantum
     z_t = zh_t
   end do
 
+  x_m = real(z_m); p_m = aimag(z_m)
+  x_n = real(z_n); p_n = aimag(z_n)
 
 end subroutine FBTS_dt_evolve_quantum
 !======================================================================================
