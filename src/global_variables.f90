@@ -44,7 +44,8 @@ module global_variables
 !  real(8) :: x2_max
   
 
-! FBME
+! FBTS
+  character(len=20) :: FBTS_flag = 'original'
   real(8),allocatable :: x_n(:),p_n(:)
 
 

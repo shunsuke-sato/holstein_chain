@@ -9,6 +9,7 @@ subroutine FBTS_initial_condition
   integer :: isite,jsite,i
   real(8) :: xx,pp
   real(8) :: n_m(Lsite),n_n(Lsite),n(Lsite)
+  complex(8) :: z_m(Lsite),z_n(Lsite),zs
 
   call set_initial_conditions_ph
 
@@ -18,6 +19,14 @@ subroutine FBTS_initial_condition
     call gaussian_random_number(xx,pp)
     x_n(isite) = sqrt(0.5d0)*xx; p_n(isite) = sqrt(0.5d0)*pp
   end do
+  select case(FBTS_flag)
+  case('original','org','consistent')
+  case('modified')
+    x_m = x_m*sqrt(2d0); p_m = p_m*sqrt(2d0)
+    x_n = x_n*sqrt(2d0); p_n = p_n*sqrt(2d0)
+  case default
+    stop 'Invalid FBTS_flag'
+  end select
 
 ! Initial condition for phonon-bath
   do i = 1,Lsite
@@ -37,6 +46,18 @@ subroutine FBTS_initial_condition
                               *(x_n(jsite) - zI * p_n(jsite) )
     end do
   end do
+
+  select case(FBTS_flag)
+  case('original','org','consistent')
+  case('modified')
+    z_m = x_m + zI * p_m; z_n = x_n + zI * p_n
+    zs = -0.5d0*sum(abs(z_m)**2 + abs(z_n)**2)+sum(conjg(z_m)*z_n)
+    zs = exp(zs)*4d0**Lsite
+    zweight_m = zweight_m * zs
+  case default
+    stop 'Invalid FBTS_flag'
+  end select
+
 
 !  zweight0 = zweight_m(1,1)
 !  return

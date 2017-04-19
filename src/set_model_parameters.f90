@@ -17,7 +17,7 @@ subroutine set_model_parameters
 
   Ntraj = 10000
 
-  dt = 0.005d0
+  dt = 0.04d0
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
@@ -28,9 +28,9 @@ subroutine set_model_parameters
 !  calc_mode = 'MTEF'
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
-  calc_mode = 'PBME'; PBME_flag = 'modified' ! 'original', 'consisten', 'modified'
+!  calc_mode = 'PBME'; PBME_flag = 'modified' ! 'original', 'consisten', 'modified'
 !  x2_max = 5d0*dble(Lsite)
-! calc_mode = 'FBTS'
+ calc_mode = 'FBTS'; FBTS_flag = 'modified' ! 'original', 'consisten', 'modified'
 !  calc_mode = 'FBTS_K'
 
 !  call mean_population
