@@ -13,17 +13,25 @@ subroutine FBTS_initial_condition
 
   call set_initial_conditions_ph
 
-  do isite = 1,Lsite
-    call gaussian_random_number(xx,pp)
-    x_m(isite) = sqrt(0.5d0)*xx; p_m(isite) = sqrt(0.5d0)*pp
-    call gaussian_random_number(xx,pp)
-    x_n(isite) = sqrt(0.5d0)*xx; p_n(isite) = sqrt(0.5d0)*pp
-  end do
   select case(FBTS_flag)
   case('original','org','consistent')
+
+     do isite = 1,Lsite
+        call gaussian_random_number(xx,pp)
+        x_m(isite) = sqrt(0.5d0)*xx; p_m(isite) = sqrt(0.5d0)*pp
+        call gaussian_random_number(xx,pp)
+        x_n(isite) = sqrt(0.5d0)*xx; p_n(isite) = sqrt(0.5d0)*pp
+     end do
+
   case('modified')
-    x_m = x_m*sqrt(2d0); p_m = p_m*sqrt(2d0)
-    x_n = x_n*sqrt(2d0); p_n = p_n*sqrt(2d0)
+
+     do isite = 1,Lsite
+        call correlated_gaussian_random_number(xx,pp)
+        x_m(isite) = xx; x_n(isite) = pp
+        call correlated_gaussian_random_number(xx,pp)
+        p_m(isite) = xx; p_n(isite) = pp
+     end do
+
   case default
     stop 'Invalid FBTS_flag'
   end select
@@ -51,8 +59,7 @@ subroutine FBTS_initial_condition
   case('original','org','consistent')
   case('modified')
     z_m = x_m + zI * p_m; z_n = x_n + zI * p_n
-    zs = -0.5d0*sum(abs(z_m)**2 + abs(z_n)**2)+sum(conjg(z_m)*z_n)
-    zs = exp(zs)*4d0**Lsite
+    zs = exp( -zI * aimag(sum(z_m*conjg(z_n))) ) * (2d0/sqrt(3d0))**(2*Lsite)
     zweight_m = zweight_m * zs
   case default
     stop 'Invalid FBTS_flag'
