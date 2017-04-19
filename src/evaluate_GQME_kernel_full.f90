@@ -9,11 +9,12 @@ subroutine evaluate_GQME_kernel_full
   integer,parameter :: Niter_scf = 20
   integer :: it,it2,iter_scf,i
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
+  complex(8),allocatable :: zK2_l(:,:,:,:,:)
   integer :: mod_table(-Lsite:Lsite)
 
-  if(myrank /= 0)return
+!  if(myrank /= 0)return
 
-  allocate(zK2_tmp(Lsite,Lsite,1,Lsite,0:Nt))
+  allocate(zK2_tmp(Lsite,Lsite,1,Lsite,0:Nt),zK2_l(Lsite,Lsite,1,Lsite,0:Nt))
   allocate(zK_tmp(Lsite,Lsite,1,Lsite),zK_sum(Lsite,Lsite,1,Lsite))
 
   do i = -Lsite,Lsite
@@ -24,13 +25,15 @@ subroutine evaluate_GQME_kernel_full
 ! evaluate K2
   zK2 = zK3
   zK2_tmp = zK2
-    write(*,"(A,2x,2e16.6e3)")"K3/K1",sum(abs(zK3)**2)/sum(abs(zK1)**2)
+  write(*,"(A,2x,2e16.6e3)")"K3/K1",sum(abs(zK3)**2)/sum(abs(zK1)**2)
 
   do iter_scf = 1,Niter_scf
 
+    zK2_l = 0d0      
     do it = 0,Nt
-      
-      zK2(:,:,:,:,it) = zK3(:,:,:,:,it)
+
+      if(mod(it,Nprocs) /= myrank)cycle
+      zK2_l(:,:,:,:,it) = zK3(:,:,:,:,it)
       if(it == 0)cycle
       call kernel_product(zK3(:,:,:,:,it),zK2_tmp(:,:,:,:,0),zK_tmp,Lsite,mod_table)
       zK_sum = 0.5d0*zK_tmp
@@ -41,53 +44,60 @@ subroutine evaluate_GQME_kernel_full
         zK_sum = zK_sum + zK_tmp
       end do
       zK_sum = zK_sum*dt
-      zK2(:,:,:,:,it) = zK2(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
+      zK2_l(:,:,:,:,it) = zK2_l(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
     end do
 
-    write(*,"(A,2x,I5,2e16.6e3)")"K2 error",iter_scf,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2) &
+    call MPI_ALLREDUCE(zK2_l,zK2,(Nt+1)*Lsite**3, &
+      MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+    write(*,"(A,2x,I5,2e16.6e3)")"K2 error",iter_scf &
+      ,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2) &
          ,sum(abs(zK2)**2)/sum(abs(zK1)**2)
     zK2_tmp = zK2
 
   end do
   
 ! evaluate full-kernel
-
-    do it = 0,Nt
+  zK2_l = 0d0
+  do it = 0,Nt
       
-      zK_full(:,:,:,:,it) = zK1(:,:,:,:,it)
-      if(it == 0)cycle
-      call kernel_product(zK1(:,:,:,:,it),zK2(:,:,:,:,0),zK_tmp,Lsite,mod_table)
-      zK_sum = 0.5d0*zK_tmp
-      call kernel_product(zK1(:,:,:,:,0),zK2(:,:,:,:,it),zK_tmp,Lsite,mod_table)
-      zK_sum = zK_sum + 0.5d0*zK_tmp
-      do it2 = 1,it-1
-        call kernel_product(zK1(:,:,:,:,it-it2),zK2(:,:,:,:,it2),zK_tmp,Lsite,mod_table)
-        zK_sum = zK_sum + zK_tmp
-      end do
-      zK_sum = zK_sum*dt
-      zK_full(:,:,:,:,it) = zK_full(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
+    if(mod(it,Nprocs) /= myrank)cycle
+    zK2_l(:,:,:,:,it) = zK1(:,:,:,:,it)
+    if(it == 0)cycle
+    call kernel_product(zK1(:,:,:,:,it),zK2(:,:,:,:,0),zK_tmp,Lsite,mod_table)
+    zK_sum = 0.5d0*zK_tmp
+    call kernel_product(zK1(:,:,:,:,0),zK2(:,:,:,:,it),zK_tmp,Lsite,mod_table)
+    zK_sum = zK_sum + 0.5d0*zK_tmp
+    do it2 = 1,it-1
+      call kernel_product(zK1(:,:,:,:,it-it2),zK2(:,:,:,:,it2),zK_tmp,Lsite,mod_table)
+      zK_sum = zK_sum + zK_tmp
     end do
+    zK_sum = zK_sum*dt
+    zK2_l(:,:,:,:,it) = zK2_l(:,:,:,:,it) + zI*zK_sum(:,:,:,:)
+  end do
 
+  call MPI_ALLREDUCE(zK2_l,zK_full,(Nt+1)*Lsite**3, &
+    MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
+  
+  call refine_GQME_kernel_full
 
-    call refine_GQME_kernel_full
-
-    if(myrank == 0)then
-       open(20,file="k.out")
-       do it = 0,Nt
-          write(20,"(999e26.16e3)")dt*it,zK_full(1,2,1,2,it),conjg(zK_full(1,Lsite,1,Lsite,it))
-       end do
-       close(20)
-       open(20,file="k1.out")
-       do it = 0,Nt
-          write(20,"(999e26.16e3)")dt*it,zK1(1,2,1,2,it),conjg(zK1(1,Lsite,1,Lsite,it))
-       end do
-       close(20)
-       open(20,file="k3.out")
-       do it = 0,Nt
-          write(20,"(999e26.16e3)")dt*it,zK3(1,2,1,2,it),conjg(zK3(1,Lsite,1,Lsite,it))
-       end do
-       close(20)
-    end if
+  if(myrank == 0)then
+    open(20,file="k.out")
+    do it = 0,Nt
+      write(20,"(999e26.16e3)")dt*it,zK_full(1,2,1,2,it),conjg(zK_full(1,Lsite,1,Lsite,it))
+    end do
+    close(20)
+    open(20,file="k1.out")
+    do it = 0,Nt
+      write(20,"(999e26.16e3)")dt*it,zK1(1,2,1,2,it),conjg(zK1(1,Lsite,1,Lsite,it))
+    end do
+    close(20)
+    open(20,file="k3.out")
+    do it = 0,Nt
+      write(20,"(999e26.16e3)")dt*it,zK3(1,2,1,2,it),conjg(zK3(1,Lsite,1,Lsite,it))
+    end do
+    close(20)
+  end if
 
 end subroutine evaluate_GQME_kernel_full
 !====================================================
