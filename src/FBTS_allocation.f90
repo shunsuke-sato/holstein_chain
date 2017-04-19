@@ -10,6 +10,7 @@ subroutine FBTS_allocation
 
   allocate(zC(Lsite),Hmat_kin(Lsite,Lsite),Hmat_coup(Lsite,Lsite),Hmat_tot(Lsite,Lsite))
   allocate(X_HO(Lsite),V_HO(Lsite),F_HO(Lsite),X_HO_ini(Lsite),V_HO_ini(Lsite))
+  allocate(X_HO_new(Lsite),X_HO_old(Lsite))
   allocate(x_m(Lsite),p_m(Lsite),zweight_m(Lsite,Lsite))
   allocate(x_n(Lsite),p_n(Lsite))
 
