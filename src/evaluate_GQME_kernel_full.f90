@@ -25,7 +25,7 @@ subroutine evaluate_GQME_kernel_full
 ! evaluate K2
   zK2 = zK3
   zK2_tmp = zK2
-  write(*,"(A,2x,2e16.6e3)")"K3/K1",sum(abs(zK3)**2)/sum(abs(zK1)**2)
+  if(myrank == 0)write(*,"(A,2x,2e16.6e3)")"K3/K1",sum(abs(zK3)**2)/sum(abs(zK1)**2)
 
   do iter_scf = 1,Niter_scf
 
@@ -50,7 +50,7 @@ subroutine evaluate_GQME_kernel_full
     call MPI_ALLREDUCE(zK2_l,zK2,(Nt+1)*Lsite**3, &
       MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-    write(*,"(A,2x,I5,2e16.6e3)")"K2 error",iter_scf &
+    if(myrank == 0)write(*,"(A,2x,I5,2e16.6e3)")"K2 error",iter_scf &
       ,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2) &
          ,sum(abs(zK2)**2)/sum(abs(zK1)**2)
     zK2_tmp = zK2
