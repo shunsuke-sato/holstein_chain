@@ -56,4 +56,8 @@ module global_variables
   integer,parameter :: nfile_full_kernel = 50
   character(50),parameter :: file_full_kernel = 'full_kernel.out'
 
+! Timer 
+  real(8) :: timer_start,timer_end
+
+
 end module global_variables

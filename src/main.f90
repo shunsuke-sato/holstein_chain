@@ -8,6 +8,8 @@ program main
   implicit none
 
   call initialize_mpi
+  timer_start = MPI_Wtime()
+
   call set_model_parameters
 
 
@@ -37,7 +39,9 @@ program main
     call err_finalize('Invalid calc_mode')
   end select
 
-
+  timer_end = MPI_Wtime()
+  if(myrank == 0)write(*,"(A,2x,e16.6e3,2x,A)")"Total elapsed time =" &
+    ,timer_end - timer_start,"sec."
   call MPI_finalize(ierr)
 
 end program main
