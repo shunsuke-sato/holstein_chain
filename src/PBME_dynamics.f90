@@ -129,7 +129,7 @@ subroutine PBE_M_population(zpop0)
   integer :: isite
 
   x2 = sum(x_m**2 + p_m**2)
-  weight = 2**(Lsite+1)*exp(-x2)
+  weight = 2d0
 
   x2 = 0d0
   zpop0 = 0d0
@@ -216,7 +216,7 @@ subroutine PBE_M_Ekin(zEkin0,zEtot0)
   real(8) :: x2,weight
 
   x2 = sum(x_m**2 + p_m**2)
-  weight = 2**(Lsite+1)*exp(-x2)
+  weight = 2d0
 
   do i = 1,Lsite
     do j = 1,Lsite

@@ -11,11 +11,20 @@ subroutine PBME_initial_condition
 
   call set_initial_conditions_ph
 
-  do isite = 1,Lsite
-    call gaussian_random_number(xx,pp)
-    x_m(isite) = sqrt(0.5d0)*xx; p_m(isite) = sqrt(0.5d0)*pp
-  end do
-
+  select case(PBME_flag)
+  case('original','org','consistent')
+    do isite = 1,Lsite
+       call gaussian_random_number(xx,pp)
+       x_m(isite) = sqrt(0.5d0)*xx; p_m(isite) = sqrt(0.5d0)*pp
+    end do
+  case('modified')
+    do isite = 1,Lsite
+       call gaussian_random_number(xx,pp)
+       x_m(isite) = 0.5d0*xx; p_m(isite) = 0.5d0*pp
+    end do
+  case default
+    stop 'Invalid PBME_flag'
+  end select
 
 !  if(x2_mean > 0d0)then
 !    ss = sum(x_m**2 + p_m**2)
