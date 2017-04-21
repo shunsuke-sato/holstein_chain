@@ -28,6 +28,10 @@ program main
   case('PBME')
     call PBME_allocation
     call PBME_dynamics
+  case('PBME_K')
+    call PBME_allocation
+    call PBME_kernel
+    call GQME_dynamics
   case('FBTS')
     call FBTS_allocation
     call FBTS_dynamics
