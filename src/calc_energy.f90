@@ -18,10 +18,10 @@ subroutine calc_energy(Ekin_t,Eph_t,Ecoup_t)
 
 end subroutine calc_energy
 
-subroutine calc_energy_pair(zEkin_t,zEph_t,zEcoup_t)
+subroutine calc_energy_pair(zEkin_t,zEph_t,zEcoup_t,znorm_t)
   use global_variables
   implicit none
-  complex(8),intent(out) :: zEkin_t,zEph_t,zEcoup_t
+  complex(8),intent(out) :: zEkin_t,zEph_t,zEcoup_t,znorm_t
   complex(8) :: zhCp(Lsite)
   complex(8) :: z_HO(Lsite),zp_HO(Lsite)
   integer :: i
@@ -32,10 +32,9 @@ subroutine calc_energy_pair(zEkin_t,zEph_t,zEcoup_t)
   zhCp(:) = matmul(Hmat_kin,zCp)
 
   zEkin_t = sum( conjg(zC)*zhCp )
-!  zEph_t = omega0*sum(conjg(z_HO)*zp_HO) + dble(Lsite)/2d0
-!  zEph_t = zEph_t*sum(conjg(zC)*zCp)
-  zEph_t = 1d0 !1d0*sum(conjg(zC)*zCp)
+  zEph_t = omega0*sum(conjg(z_HO)*zp_HO) + dble(Lsite)/2d0
+
   zEcoup_t = -gamma*sum((conjg(z_HO) + zp_HO)*conjg(zC)*zCp)
-  
+  znorm_t = 1d0
 
 end subroutine calc_energy_pair

@@ -28,8 +28,8 @@ module global_variables
 ! Time propagation
   integer :: Nt
   real(8) :: dt
-  real(8),allocatable :: Ekin(:),Eph(:),Ecoup(:)
-  real(8),allocatable :: Ekin_l(:),Eph_l(:),Ecoup_l(:)
+  real(8),allocatable :: Ekin(:),Eph(:),Ecoup(:),norm_t(:)
+  real(8),allocatable :: Ekin_l(:),Eph_l(:),Ecoup_l(:),norm_t_l(:)
 
 ! Generalized Quantum master equation
   complex(8),allocatable :: zrho_DM(:,:,:)

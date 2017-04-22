@@ -13,6 +13,7 @@ subroutine PTEF_allocation
   allocate(X_HO_new(Lsite),X_HO_old(Lsite))
   allocate(Ekin(0:Nt+1),Eph(0:Nt+1),Ecoup(0:Nt+1))
   allocate(Ekin_l(0:Nt+1),Eph_l(0:Nt+1),Ecoup_l(0:Nt+1))
+  allocate(norm_t_l(0:Nt+1),norm_t(0:Nt+1))
 
   allocate(zCp(Lsite))
   allocate(Xp_HO(Lsite),Vp_HO(Lsite),Fp_HO(Lsite))
