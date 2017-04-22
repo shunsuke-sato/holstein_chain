@@ -14,3 +14,17 @@ subroutine calc_force_HO
   
 
 end subroutine calc_force_HO
+
+
+subroutine calc_force_HO_pair
+  use global_variables
+  implicit none
+  integer :: i
+
+  do i = 1,Lsite
+    F_HO(i) = gamma*abs(zC(i))**2*sqrt(2d0*mass*omega0) - omega0**2*mass*X_HO(i)
+    Fp_HO(i) = gamma*abs(zCp(i))**2*sqrt(2d0*mass*omega0) - omega0**2*mass*Xp_HO(i)
+  end do
+
+
+end subroutine calc_force_HO_pair

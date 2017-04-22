@@ -25,6 +25,9 @@ program main
     call allocation_of_global_arrays
     call GQME_kernel_read
     call GQME_dynamics
+  case('PTEF')
+    call PTEF_allocation
+    call PTEF_dynamics
   case('PBME')
     call PBME_allocation
     call PBME_dynamics

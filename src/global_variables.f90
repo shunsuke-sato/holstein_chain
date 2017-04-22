@@ -16,9 +16,10 @@ module global_variables
 ! Parameters of model
   integer :: Lsite
   real(8) :: t0,gamma,mass,omega0,Tph
-  complex(8),allocatable :: zC(:)
+  complex(8),allocatable :: zC(:),zCp(:)
   real(8),allocatable :: Hmat_kin(:,:),Hmat_coup(:,:),Hmat_tot(:,:)
   real(8),allocatable :: X_HO(:),V_HO(:),F_HO(:),X_HO_new(:),X_HO_old(:)
+  real(8),allocatable :: Xp_HO(:),Vp_HO(:),Fp_HO(:),Xp_HO_new(:),Xp_HO_old(:)
 
 ! Multi-trajectory
   integer :: Ntraj
