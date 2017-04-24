@@ -74,12 +74,12 @@ end subroutine PTEF_calc_matrix
 
 
 !=====================================================================================
-subroutine PTEF_calc_matrix_old(zSm,zVm,zVm_i_v22,zHm,zHm_v,zHk_v,zHph_v,zHcoup_v,zSm_v,zDm)
+subroutine PTEF_calc_matrix_old(zSm,zVm,zVm_i_v22,zHm,zHm_v,zHk_v,zHph_v,zHcoup_v,zSm_v)
   use global_variables
   implicit none
   complex(8),intent(out) :: zSm(2,2),zVm(2,2),zVm_i_v22(2,2)
   complex(8),intent(out) :: zHm(2,2),zHm_v(2,2)
-  complex(8),intent(out) :: zHk_v(2,2),zHph_v(2,2),zHcoup_v(2,2),zSm_v(2,2),zDm(2,2)
+  complex(8),intent(out) :: zHk_v(2,2),zHph_v(2,2),zHcoup_v(2,2),zSm_v(2,2)
   complex(8) :: zhC(Lsite)
   complex(8) :: z_HO(Lsite),zp_HO(Lsite)
   complex(8) :: zexponent, zMm(2,2), zovl_s,zovl_b
@@ -120,6 +120,8 @@ subroutine PTEF_calc_matrix_old(zSm,zVm,zVm_i_v22,zHm,zHm_v,zHk_v,zHph_v,zHcoup_
   zHcoup_v(2,2) = -gamma*sum(conjg(zp_HO) + zp_HO)
   zHcoup_v(1,2) = -gamma*sum(conjg(z_HO) + zp_HO)*zovl_s*zovl_b
   zHcoup_v(2,1) = conjg(zHcoup_v(1,2))
+
+  zHm = zHk_v + zHph_v + zHcoup_v
 
   zMm = matmul(zHk_v,zVm_i_v22); zHk_v = matmul( transpose(conjg(zVm_i_v22)),zMm )
   zMm = matmul(zHph_v,zVm_i_v22); zHph_v = matmul( transpose(conjg(zVm_i_v22)),zMm )
