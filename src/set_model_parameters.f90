@@ -10,18 +10,18 @@ subroutine set_model_parameters
   Lsite = 12
   t0 = 1d0
   omega0 = 1d0
-  gamma = sqrt(0.4d0)
+  gamma = 0d0 !sqrt(0.4d0)
   mass = 1d0
 
   Tph = -1d0
 
-  Ntraj = 1000
+  Ntraj = 100
 
-  dt = 0.01d0 !0.04d0
+  dt = 0.001d0 !0.01d0 !0.04d0
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
-  Nt = 100 !aint(25d0/dt)+1
+  Nt = 2000*5 !aint(1d0/dt)+1
 
 !'MTEF', 'GQME_K'
 

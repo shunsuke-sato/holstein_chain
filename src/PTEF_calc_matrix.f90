@@ -37,15 +37,15 @@ subroutine PTEF_calc_matrix(zSm,zHm,zHk,zHph,zHcoup,zDm)
 
 ! Hph
   zHph(1,1) = omega0*sum(abs(z_HO)**2) + dble(Lsite)/2d0
-  zHph(2,2) = omega0*sum(abs(z_HO)**2) + dble(Lsite)/2d0
+  zHph(2,2) = omega0*sum(abs(zp_HO)**2) + dble(Lsite)/2d0
   zHph(1,2) = omega0*sum(conjg(z_HO)*zp_HO) + dble(Lsite)/2d0
   zHph(1,2) = zHph(1,2)*zovl_s*zovl_b
   zHph(2,1) = conjg(zHph(1,2))
 
 ! Hcoup
-  zHcoup(1,1) = -gamma*sum(conjg(z_HO) + z_HO)
-  zHcoup(2,2) = -gamma*sum(conjg(zp_HO) + zp_HO)
-  zHcoup(1,2) = -gamma*sum(conjg(z_HO) + zp_HO)*zovl_s*zovl_b
+  zHcoup(1,1) = -gamma*sum((conjg(z_HO) + z_HO)*abs(zC)**2)
+  zHcoup(2,2) = -gamma*sum( (conjg(zp_HO) + zp_HO)*abs(zCp)**2 )
+  zHcoup(1,2) = -gamma*sum( (conjg(z_HO) + zp_HO)*conjg(zC)*zCp )*zovl_b
   zHcoup(2,1) = conjg(zHcoup(1,2))
 
 ! Dm
@@ -95,6 +95,7 @@ subroutine PTEF_calc_matrix_old(zSm,zVm,zVm_i_v22,zHm,zHm_v,zHk_v,zHph_v,zHcoup_
   zSm(1,2) = zovl_s * zovl_b 
   zSm(2,1) = conjg(zSm(1,2))
 
+
   zVm(1,1) = 1d0; zVm(1,2) = zSm(1,2)
   zVm(2,1) = 0d0; zVm(2,2) = sqrt(abs(1d0 - abs(zSm(1,2))**2))
   zVm_i_v22(1,1) = zVm(2,2); zVm_i_v22(1,2) = - zVm(1,2)
@@ -129,8 +130,8 @@ subroutine PTEF_calc_matrix_old(zSm,zVm,zVm_i_v22,zHm,zHm_v,zHk_v,zHph_v,zHcoup_
   zMm = matmul(zSm,zVm_i_v22); zSm_v = matmul( transpose(conjg(zVm_i_v22)),zMm )
 
   zHm_v = zHk_v + zHph_v + zHcoup_v
+  zHm_v = zHm_v/abs(zVm(2,2))**2
 
-! Hcoup
 
 
 end subroutine PTEF_calc_matrix_old
