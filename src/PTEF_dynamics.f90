@@ -12,9 +12,9 @@ subroutine PTEF_dynamics
   complex(8) :: zCt_PT(2,2),zACt_PT(2)
   complex(8) :: z_HO(Lsite),zp_HO(Lsite)
 !  complex(8) :: zSm(2,2),zHm(2,2),zHk(2,2),zHph(2,2),zHcoup(2,2),zDm(2,2)
-  complex(8) :: zSm(2,2),zVm(2,2)
-  complex(8) :: zHm(2,2)
-  complex(8) :: zHk(2,2),zHph(2,2),zHcoup(2,2),zDm(2,2)
+  complex(8) :: zSm(2,2),zVm(2,2),zHm(2,2),zDm(2,2)
+  complex(8) :: zSm_old(2,2),zDm_old(2,2),zHm_old(2,2)
+  complex(8) :: zHk(2,2),zHph(2,2),zHcoup(2,2)
   complex(8) :: znorm0
 
   Ekin_l = 0d0; Eph_l = 0d0; Ecoup_l = 0d0; norm_t_l =0d0
@@ -50,13 +50,16 @@ subroutine PTEF_dynamics
 
 !Ekin
       zACt_PT(:) = matmul(zHk, zCt_PT(:,2))
-      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+!      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm_t
 !Eph
       zACt_PT(:) = matmul(zHph, zCt_PT(:,2))
-      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+!      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm_t
 !Eph
       zACt_PT(:) = matmul(zHcoup, zCt_PT(:,2))
-      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+!      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm_t
 
       Ekin_l(it)=Ekin_l(it)+zEkin_t*zphase
       Eph_l(it)=Eph_l(it)+zEph_t*zphase
@@ -67,12 +70,14 @@ subroutine PTEF_dynamics
       call dt_evolve_elec_pair
       X_HO_old = X_HO; X_HO = X_HO_new
       Xp_HO_old = Xp_HO; Xp_HO = Xp_HO_new
-      call PTET_dt_evolve(zCt_PT,zSm,zHm,zDm,dt*0.5d0)
+!      call PTET_dt_evolve(zCt_PT,zSm,zHm,zDm,dt*0.5d0)
+      zSm_old=zSm; zDm_old=zDm; zHm_old = zHm
+      call calc_force_HO_pair
       call PTEF_calc_matrix(zSm,zHm,zHk,zHph,zHcoup,zDm)
-      call PTET_dt_evolve(zCt_PT,zSm,zHm,zDm,dt*0.5d0)
+      call PTET_dt_evolve(zCt_PT,zSm,zHm,zDm,zSm_old,zHm_old,zDm_old,dt)
 !      call PTEF_calc_matrix_old(zSm,zVm,zVm_i_v22,zHm,zHm_v,zHk_v,zHph_v,zHcoup_v,zSm_v,zDm)
 !      call propagate_2x2_wavefunction(zCt_PT,zHm_v,zHm_v_old,zSm,zSm_old,dt)
-      call calc_force_HO_pair
+
 
     end do
 
@@ -99,31 +104,78 @@ subroutine PTEF_dynamics
   end if
 
 end subroutine PTEF_dynamics
-subroutine PTET_dt_evolve(zpsi,zSm,zHm,zDm,dt)
+subroutine PTET_dt_evolve(zpsi,zSm,zHm,zDm,zSm_old,zHm_old,zDm_old,dt)
   implicit none
   complex(8),parameter :: zI = (0d0,1d0)
   complex(8),intent(inout) :: zpsi(2,2)
   complex(8),intent(in) :: zSm(2,2),zHm(2,2),zDm(2,2)
+  complex(8),intent(in) :: zSm_old(2,2),zHm_old(2,2),zDm_old(2,2)
   real(8),intent(in) :: dt
-  complex(8) :: zHeff(2,2),ztpsi(2,2),zhtpsi(2,2)
+  complex(8) :: zHeff(2,2),zHeff_old(2,2),zProp(2,2)
   complex(8) :: zAm(2,2), zAm_inv(2,2), zfact
+  complex(8) :: ztpsi(2,2),zhtpsi(2,2)
   integer :: i
   integer,parameter :: NTex = 6
+  integer :: nPropagator
+  integer,parameter :: num_Taylor = 0
+  integer,parameter :: num_CN = 1
 
-  zAm = zSm
-  call zinv2x2mat(zAm,zAm_inv) 
 
-  zHeff = matmul(zAm_inv,(zHm-zDm))
+  nPropagator = num_Taylor
+!  nPropagator = num_CN
 
-  zfact = 1d0
-  ztpsi = zpsi
-  do i = 1,NTex
-    zfact = zfact*(-zI*dt)/i
-    zhtpsi = matmul(zHeff,ztpsi)
-    zpsi = zpsi + zfact*zhtpsi
-    ztpsi = zhtpsi
-  end do
+  select case(nPropagator)
 
+  case(num_CN)
+    zAm = zSm
+    call zinv2x2mat(zAm,zAm_inv) 
+    zHeff = matmul(zAm_inv,(zHm-zDm))
+
+    zAm = zSm_old
+    call zinv2x2mat(zAm,zAm_inv) 
+    zHeff_old = matmul(zAm_inv,(zHm_old-zDm_old))
+    
+    zAm = 0d0; zAm(1,1) = 1d0; zAm(2,2) = 1d0
+    zAm = zAm + zI*0.5d0*dt*zHeff
+    call zinv2x2mat(zAm,zAm_inv) 
+    
+    zAm = 0d0; zAm(1,1) = 1d0; zAm(2,2) = 1d0
+    zAm = zAm - zI*0.5d0*dt*zHeff_old
+    zProp = matmul(zAm_inv,zAm)
+    
+    zpsi = matmul(zProp,zpsi)
+
+  case(num_Taylor)
+
+    zAm = zSm_old
+    call zinv2x2mat(zAm,zAm_inv) 
+    zHeff_old = matmul(zAm_inv,(zHm_old-zDm_old))
+
+    zfact = 1d0
+    ztpsi = zpsi
+    do i = 1,NTex
+      zfact = zfact*(-zI*dt*0.5d0)/i
+      zhtpsi = matmul(zHeff_old,ztpsi)
+      zpsi = zpsi + zfact*zhtpsi
+      ztpsi = zhtpsi
+    end do
+
+    zAm = zSm
+    call zinv2x2mat(zAm,zAm_inv) 
+    zHeff = matmul(zAm_inv,(zHm-zDm))
+
+    zfact = 1d0
+    ztpsi = zpsi
+    do i = 1,NTex
+      zfact = zfact*(-zI*dt*0.5d0)/i
+      zhtpsi = matmul(zHeff,ztpsi)
+      zpsi = zpsi + zfact*zhtpsi
+      ztpsi = zhtpsi
+    end do
+
+  case default 
+    stop 'Invalid propagator'
+  end select
 
 end subroutine PTET_dt_evolve
 

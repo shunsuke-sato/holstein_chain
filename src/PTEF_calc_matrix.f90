@@ -21,11 +21,13 @@ subroutine PTEF_calc_matrix(zSm,zHm,zHk,zHph,zHcoup,zDm)
 
   zexponent = -0.5d0*sum(abs(z_HO - zp_HO)**2) -zI*aimag(sum(z_HO*conjg(zp_HO)))
 
-  zSm(1,1) = 1d0; zSm(2,2) = 1d0
+  zSm(1,1) = 1d0 !sum(abs(zC)**2) !1d0
+  zSm(2,2) = 1d0 !sum(abs(zCp)**2) !1d0
   zovl_s = sum(conjg(zC)*zCp)
-  zovl_b = exp(zexponent)
-  zSm(1,2) = zovl_s * zovl_b 
+  zovl_b =  exp(zexponent)
+  zSm(1,2) = zovl_s * zovl_b
   zSm(2,1) = conjg(zSm(1,2))
+!  write(*,*)zSm(1,2),zSm(2,1)
 
 ! Hk
   zhC(:) = matmul(Hmat_kin,zC)
@@ -42,27 +44,36 @@ subroutine PTEF_calc_matrix(zSm,zHm,zHk,zHph,zHcoup,zDm)
   zHph(1,2) = zHph(1,2)*zovl_s*zovl_b
   zHph(2,1) = conjg(zHph(1,2))
 
+
 ! Hcoup
   zHcoup(1,1) = -gamma*sum((conjg(z_HO) + z_HO)*abs(zC)**2)
   zHcoup(2,2) = -gamma*sum( (conjg(zp_HO) + zp_HO)*abs(zCp)**2 )
-  zHcoup(1,2) = -gamma*sum( (conjg(z_HO) + zp_HO)*conjg(zC)*zCp )*zovl_b
+  zHcoup(1,2) = -gamma*sum( (conjg(z_HO) + zp_HO )*conjg(zC)*zCp )*zovl_b
   zHcoup(2,1) = conjg(zHcoup(1,2))
+!  zHcoup =  0d0 ! test
+
 
 ! Dm
   zCt_t(:) = zC(:)
   call hpsi(zCt_t,zhC)
   zDm(1,1) = real(sum(conjg(zC)*zhC)) + aimag(sum(conjg(zdt_HO)*z_HO))
+!  zDm(1,1) = real(sum(conjg(zC)*zhC)) + zI*2d0*zI*aimag(sum(conjg(z_HO)*zdt_HO))
 
   zDm(2,1) = sum(conjg(zCp)*zhC)*conjg(zovl_b) &
     +zi*conjg(zovl_s*zovl_b)*sum(conjg(zp_HO)*zdt_HO - real(zdt_HO*conjg(z_HO)))
+!  zDm(2,1) = sum(conjg(zCp)*zhC)*conjg(zovl_b) &
+!    +zi*conjg(zovl_s*zovl_b)*sum(zdt_HO*conjg(zp_HO) - conjg(zdt_HO)*z_HO  )
 
 
   zCt_t(:) = zCp(:)
   call hpsi_pair(zCt_t,zhC)
   zDm(2,2) = real(sum(conjg(zCp)*zhC)) + aimag(sum(conjg(zpdt_HO)*zp_HO))
+!  zDm(1,1) = real(sum(conjg(zC)*zhC)) + zI*2d0 * zI*aimag(sum(conjg(zp_HO)*zpdt_HO))
 
   zDm(1,2) = sum(conjg(zC)*zhC)*zovl_b &
     +zi*zovl_s*zovl_b*sum(conjg(z_HO)*zpdt_HO - real(zpdt_HO*conjg(zp_HO)))
+!  zDm(1,2) = sum(conjg(zC)*zhC)*zovl_b &
+!    +zi*zovl_s*zovl_b*sum(zpdt_HO*conjg(z_HO) - conjg(zpdt_HO)*zp_HO   )
 
 
   zHm = zHk + zHph + zHcoup

@@ -67,6 +67,7 @@ subroutine hpsi_pair(zCt_t,zhCt_t)
 
   
   zhCt_t=-gamma*sqrt(2d0*mass*omega0)*Xp_HO*zCt_t
+!  zhCt_t=zhCt_t + 1d0*zCt_t ! for test
 
   zhCt_t(1) = zhCt_t(1) -t0*(zCt_t(2) + zCt_t(Lsite))
   do i = 2,Lsite-1
@@ -87,6 +88,7 @@ subroutine hpsi_new_pair(zCt_t,zhCt_t)
 
   
   zhCt_t=-gamma*sqrt(2d0*mass*omega0)*Xp_HO_new*zCt_t
+!  zhCt_t=zhCt_t + 1d0*zCt_t ! for test
 
   zhCt_t(1) = zhCt_t(1) -t0*(zCt_t(2) + zCt_t(Lsite))
   do i = 2,Lsite-1
