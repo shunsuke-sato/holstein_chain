@@ -3,15 +3,19 @@
 ! Released under the MIT license                    !
 ! https://opensource.org/licenses/mit-license.php   !
 !---------------------------------------------------!
-subroutine PTEF_initial_condition
+subroutine PTEF_initial_condition(ialpha)
   use global_variables
   implicit none
+  integer,intent(in) :: ialpha
   integer :: isite,jsite
   real(8) :: xx,pp,ss
 
-  call set_initial_conditions_elec
-  zCp = zC
-  call set_initial_conditions_elec
+!  call set_initial_conditions_elec
+!  zCp = zC
+!  call set_initial_conditions_elec
+  zC = 0d0; zC(ialpha) = 1d0
+  zCp = 0d0; zCp(1) = 1d0
+  
 
   do isite = 1,Lsite
     call correlated_gaussian_random_number(xx,pp)
