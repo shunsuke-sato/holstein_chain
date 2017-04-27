@@ -44,22 +44,23 @@ subroutine PTEF_dynamics
 !      Vp_HO = Vp_HO + Fp_HO/mass*dt
 !zs
       zACt_PT(:) = matmul(zSm, zCt_PT(:,2))
-      znorm_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
+      zs = sum(conjg(zCt_PT(:,1))*zACt_PT(:))
+      znorm_t = zs/znorm0
 !      znorm_t = (zHm(1,1)+zHm(2,2))/znorm0
 !      znorm_t = (zHm(1,1)+zHm(2,2))/znorm0
 
 !Ekin
       zACt_PT(:) = matmul(zHk, zCt_PT(:,2))
 !      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
-      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm_t
+      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/zs
 !Eph
       zACt_PT(:) = matmul(zHph, zCt_PT(:,2))
 !      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
-      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm_t
+      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/zs
 !Eph
       zACt_PT(:) = matmul(zHcoup, zCt_PT(:,2))
 !      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
-      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm_t
+      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/zs
 
       Ekin_l(it)=Ekin_l(it)+zEkin_t*zphase
       Eph_l(it)=Eph_l(it)+zEph_t*zphase
