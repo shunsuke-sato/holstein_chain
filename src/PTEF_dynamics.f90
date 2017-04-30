@@ -9,6 +9,7 @@ subroutine PTEF_dynamics
   integer :: itraj,it
   complex(8) :: zEkin_t,zEph_t,zEcoup_t,znorm_t
   complex(8) :: zphase, zexponent0, zexponent,zs
+  complex(8) :: zphase_p,zphase_m
   complex(8) :: zCt_PT(2,2),zACt_PT(2)
   complex(8) :: z_HO(Lsite),zp_HO(Lsite)
 !  complex(8) :: zSm(2,2),zHm(2,2),zHk(2,2),zHph(2,2),zHcoup(2,2),zDm(2,2)
@@ -17,6 +18,7 @@ subroutine PTEF_dynamics
   complex(8) :: zHk(2,2),zHph(2,2),zHcoup(2,2)
   complex(8) :: znorm0
   complex(8) :: zdrho(Lsite,Lsite)
+  real(8) :: phase_rnd
   integer :: isite,jsite,ialpha
 
   do isite = 1,Lsite
@@ -30,7 +32,9 @@ subroutine PTEF_dynamics
   Ekin_l = 0d0; Eph_l = 0d0; Ecoup_l = 0d0; norm_t_l =0d0
 
   do itraj = 1,Ntraj
-    if(myrank == 0)write(*,*)"itraj=",itraj
+    if(myrank == 0 .and. mod(itraj,Ntraj/100) == 0)write(*,*)"itraj=",itraj
+    call random_number(phase_rnd); phase_rnd = phase_rnd * 2d0*pi
+    
     ialpha = mod(itraj,Lsite) + 1
     call PTEF_initial_condition(ialpha)
     if(mod(itraj,Nprocs) /= myrank)cycle
@@ -38,12 +42,15 @@ subroutine PTEF_dynamics
     zp_HO = (Xp_HO + zI*Vp_HO/omega0)*sqrt(mass*omega0/2d0)
 !    zphase = exp(-zI * aimag(sum(z_HO*conjg(zp_HO))))*(4d0/3d0)**Lsite
     zphase = exp(0.5d0*sum(abs(z_HO - zp_HO)**2))*(4d0/3d0)**Lsite
-    zphase = zphase * zdrho(1,ialpha)*Lsite**2
-
+    zphase_p = exp(-zI*phase_rnd) !zphase * 
+    zphase_m = -exp(-zI*phase_rnd) !zphase * 
+!    zphase = zphase * zdrho(1,ialpha)*Lsite**2
 
     call PTEF_calc_matrix(zSm,zHm,zHk,zHph,zHcoup,zDm)
-    zCt_PT(:,:) = 0d0; zCt_PT(1,1)=1d0; zCt_PT(2,2)=1d0
-    zACt_PT(:) = matmul(zSm, zCt_PT(:,2))
+    zCt_PT(1,1)=1d0; zCt_PT(2,1)=exp(zI*phase_rnd)
+    zCt_PT(1,2)=1d0; zCt_PT(2,2)= - exp(zI*phase_rnd)
+!    zCt_PT(:,2) = zCt_PT(:,1)
+!    zACt_PT(:) = matmul(zSm, zCt_PT(:,2))
 !    znorm0 = sum(conjg(zCt_PT(:,1))*zACt_PT(:))
 
 
@@ -56,30 +63,37 @@ subroutine PTEF_dynamics
       Vp_HO = 0.5d0*(Xp_HO_new - Xp_HO_old)/dt + Fp_HO/mass*dt
 !      Vp_HO = Vp_HO + Fp_HO/mass*dt
 !zs
-      zACt_PT(:) = matmul(zSm, zCt_PT(:,2))
+      zACt_PT(:) = matmul(zSm, zCt_PT(:,1))
       zs = sum(conjg(zCt_PT(:,1))*zACt_PT(:))
-!      znorm_t = zs/znorm0
-      znorm_t = zs
+      znorm_t = zs*zphase_p
+
+      zACt_PT(:) = matmul(zSm, zCt_PT(:,2))
+      zs = sum(conjg(zCt_PT(:,2))*zACt_PT(:))
+      znorm_t = znorm_t + zs*zphase_m
+!      znorm_t = (zHm(1,1)+zHm(2,2))/znorm0
 !      znorm_t = (zHm(1,1)+zHm(2,2))/znorm0
 !      znorm_t = (zHm(1,1)+zHm(2,2))/znorm0
 
 !Ekin
+      zACt_PT(:) = matmul(zHk, zCt_PT(:,1))
+      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))*zphase_p
       zACt_PT(:) = matmul(zHk, zCt_PT(:,2))
-!      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
-      zEkin_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))
+      zEkin_t = zEkin_t + sum(conjg(zCt_PT(:,2))*zACt_PT(:))*zphase_m
 !Eph
+      zACt_PT(:) = matmul(zHph, zCt_PT(:,1))
+      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))*zphase_p
       zACt_PT(:) = matmul(zHph, zCt_PT(:,2))
-!      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
-      zEph_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))
+      zEph_t = zEph_t + sum(conjg(zCt_PT(:,2))*zACt_PT(:))*zphase_m
 !Eph
+      zACt_PT(:) = matmul(zHcoup, zCt_PT(:,1))
+      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))*zphase_p
       zACt_PT(:) = matmul(zHcoup, zCt_PT(:,2))
-!      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))/znorm0
-      zEcoup_t = sum(conjg(zCt_PT(:,1))*zACt_PT(:))
+      zEcoup_t = zEcoup_t + sum(conjg(zCt_PT(:,2))*zACt_PT(:))*zphase_m
 
-      Ekin_l(it)=Ekin_l(it)+zEkin_t*zphase
-      Eph_l(it)=Eph_l(it)+zEph_t*zphase
-      Ecoup_l(it)=Ecoup_l(it)+zEcoup_t*zphase
-      norm_t_l(it)=norm_t_l(it)+znorm_t*zphase
+      Ekin_l(it)=Ekin_l(it)+zEkin_t*zphase/2d0
+      Eph_l(it)=Eph_l(it)+zEph_t*zphase/2d0
+      Ecoup_l(it)=Ecoup_l(it)+zEcoup_t*zphase/2d0
+      norm_t_l(it)=norm_t_l(it)+znorm_t*zphase/2d0
 
 
       call dt_evolve_elec_pair

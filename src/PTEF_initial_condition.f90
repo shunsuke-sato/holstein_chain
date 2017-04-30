@@ -10,11 +10,11 @@ subroutine PTEF_initial_condition(ialpha)
   integer :: isite,jsite
   real(8) :: xx,pp,ss
 
-!  call set_initial_conditions_elec
-!  zCp = zC
-!  call set_initial_conditions_elec
-  zC = 0d0; zC(ialpha) = 1d0
-  zCp = 0d0; zCp(1) = 1d0
+  call set_initial_conditions_elec
+  zCp = zC
+  call set_initial_conditions_elec
+!  zC = 0d0; zC(ialpha) = 1d0
+!  zCp = 0d0; zCp(1) = 1d0
   
 
   do isite = 1,Lsite
