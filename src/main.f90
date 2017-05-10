@@ -10,6 +10,7 @@ program main
   call initialize_mpi
   timer_start = MPI_Wtime()
 
+  call initialize_random_number_generator
   call set_model_parameters
 
 

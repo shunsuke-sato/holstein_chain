@@ -25,8 +25,8 @@ subroutine set_model_parameters
 
 !'MTEF', 'GQME_K'
 
-!  calc_mode = 'MTEF'
-  calc_mode = 'PTEF'
+  calc_mode = 'MTEF'
+!  calc_mode = 'PTEF'
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
 !  calc_mode = 'PBME'; PBME_flag = 'modified' ! 'original', 'consisten', 'modified'

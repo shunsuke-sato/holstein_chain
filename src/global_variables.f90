@@ -5,6 +5,7 @@
 !---------------------------------------------------!
 module global_variables
   implicit none
+
 ! Mathematical parameters
 !  real(8),parameter :: pi=3.14159265358979323846d0
   real(8),parameter :: pi=4d0*atan(1d0)
