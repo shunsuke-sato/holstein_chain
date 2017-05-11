@@ -15,7 +15,10 @@ subroutine evaluate_GQME_kernel_K1K3
   real(8),parameter :: rate = 0.1d0
   integer  :: iphase,jphase
   real(8) :: phi
+  integer :: len =1
+  real(8) :: rvec(1)
 
+  len = 1
   allocate(zK1_tmp(Lsite,Lsite,0:Nt),zK1_tmp_l(Lsite,Lsite,0:Nt))
   allocate(zK3_tmp(Lsite,Lsite,0:Nt),zK3_tmp_l(Lsite,Lsite,0:Nt))
 
@@ -84,7 +87,8 @@ subroutine evaluate_GQME_kernel_K1K3
     call set_thermal_ph_dist
     zK1_tmp_l = 0d0; zK3_tmp_l = 0d0
     do itraj = 1,Ntraj
-    call random_number(phi); phi = 2d0 * pi *phi
+!    call random_number(phi); phi = 2d0 * pi *phi
+      call ranlux_double(rvec,len); phi = 2d0 * pi * rvec(1)
 
 ! positive summ
 !      call set_initial_conditions_elec
