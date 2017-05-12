@@ -51,10 +51,12 @@ subroutine FBTS_dynamics
       Ekin_FBTS_l(it+1) = Ekin_FBTS_l(it+1)  + zEkin0_FBTS*zweight0
       Etot_FBTS_l(it+1) = Etot_FBTS_l(it+1)  + zEtot0_FBTS*zweight0
 
-    if(itraj == 1)then
-      call FBTS_calc_ene(Etot0)
-      write(30,"(999e26.16e3)")dt*(it+1),Etot0
-    end if
+      call FBTS_jump(it)
+
+      if(itraj == 1)then
+        call FBTS_calc_ene(Etot0)
+        write(30,"(999e26.16e3)")dt*(it+1),Etot0
+      end if
 
     end do
 

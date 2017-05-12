@@ -15,23 +15,26 @@ subroutine set_model_parameters
 
   Tph = -1d0
 
-  Ntraj = 1000000
+  Ntraj = 100000
 
   dt = 0.04d0 !0.01d0 !0.04d0
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
-  Nt = aint(5d0/dt)+1
+  Nt = aint(25.0d0/dt)+1
 
 !'MTEF', 'GQME_K'
 
-  calc_mode = 'MTEF'
+!  calc_mode = 'MTEF'
 !  calc_mode = 'PTEF'
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
 !  calc_mode = 'PBME'; PBME_flag = 'modified' ! 'original', 'consisten', 'modified'
 !  x2_max = 5d0*dble(Lsite)
 ! calc_mode = 'FBTS'; FBTS_flag = 'modified' ! 'original', 'consisten', 'modified'
+  calc_mode = 'FBTS'; FBTS_flag = 'jump' ! 'original', 'consisten', 'modified'
+  FBTS_jump_flag = 'regular'; FBTS_jump_period = 10.d0
+!  FBTS_jump_flag = 'exponential'; FBTS_jump_period = 100.d0
 !  calc_mode = 'FBTS_K'
 
 !  call mean_population

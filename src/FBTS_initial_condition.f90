@@ -14,7 +14,7 @@ subroutine FBTS_initial_condition
   call set_initial_conditions_ph
 
   select case(FBTS_flag)
-  case('original','org','consistent')
+  case('original','org','jump','consistent')
 
      do isite = 1,Lsite
         call gaussian_random_number(xx,pp)
@@ -33,7 +33,7 @@ subroutine FBTS_initial_condition
      end do
 
   case default
-    stop 'Invalid FBTS_flag'
+    stop 'Invalid FBTS_flag in initial condition'
   end select
 
 ! Initial condition for phonon-bath
@@ -56,7 +56,7 @@ subroutine FBTS_initial_condition
   end do
 
   select case(FBTS_flag)
-  case('original','org','consistent')
+  case('original','org','jump','consistent')
   case('modified')
     z_m = x_m + zI * p_m; z_n = x_n + zI * p_n
     zs = exp( -zI * aimag(sum(z_m*conjg(z_n))) ) * (2d0/sqrt(3d0))**(2*Lsite)

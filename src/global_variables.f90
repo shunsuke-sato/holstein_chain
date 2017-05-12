@@ -47,7 +47,8 @@ module global_variables
   
 
 ! FBTS
-  character(len=20) :: FBTS_flag = 'original'
+  character(len=20) :: FBTS_flag = 'original',FBTS_jump_flag = 'regular'
+  real(8) :: FBTS_jump_period
   real(8),allocatable :: x_n(:),p_n(:)
 
 

@@ -26,8 +26,7 @@ subroutine FBTS_dt_evolve_quantum
     F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
   end do
 
-  X_HO_new = 2d0*X_HO - X_HO_old + F_HO/mass*dt**2
-
+  V_HO = V_HO + F_HO/mass*dt
 
   zfact = 1d0
   z_t = z_m
@@ -47,8 +46,7 @@ subroutine FBTS_dt_evolve_quantum
     z_t = zh_t
   end do
 
-  V_HO = 0.5d0*(X_HO_new - X_HO_old)/dt + F_HO/mass*dt
-  X_HO_old = X_HO; X_HO = X_HO_new
+  X_HO = X_HO + V_HO*dt
 
   zfact = 1d0
   z_t = z_m
@@ -70,6 +68,16 @@ subroutine FBTS_dt_evolve_quantum
 
   x_m = real(z_m); p_m = aimag(z_m)
   x_n = real(z_n); p_n = aimag(z_n)
+
+  do i = 1,Lsite
+    n_m(i) = 0.5d0*(x_m(i)**2 + p_m(i)**2)
+    n_n(i) = 0.5d0*(x_n(i)**2 + p_n(i)**2)
+!    n(i) = n_m(i) + n_n(i) ! with trace
+    n(i) = n_m(i) + n_n(i) - 1.0d0 ! traceless
+    F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
+  end do
+
+  V_HO = V_HO + F_HO/mass*dt
 
 end subroutine FBTS_dt_evolve_quantum
 !======================================================================================
