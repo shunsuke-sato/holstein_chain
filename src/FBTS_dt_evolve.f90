@@ -26,7 +26,7 @@ subroutine FBTS_dt_evolve_quantum
     F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
   end do
 
-  V_HO = V_HO + F_HO/mass*dt
+  V_HO = V_HO + F_HO/mass*dt*0.5d0
 
   zfact = 1d0
   z_t = z_m
@@ -77,7 +77,7 @@ subroutine FBTS_dt_evolve_quantum
     F_HO(i) = gamma*sqrt(2d0*mass*omega0)*n(i) - omega0**2*mass*X_HO(i) 
   end do
 
-  V_HO = V_HO + F_HO/mass*dt
+  V_HO = V_HO + F_HO/mass*dt*0.5d0
 
 end subroutine FBTS_dt_evolve_quantum
 !======================================================================================
