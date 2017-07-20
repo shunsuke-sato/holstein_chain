@@ -1,15 +1,32 @@
-# log files.
+# Log files
 *.out
-*.optrpt
 *.log
 *.dat
+*~
 
-# objects.
-*.mod
+# Object files
 *.o
 
-# build temp dir.
-.build_temp*/
+# Module files
+*.mod
 
-# others
-*~ 
+# Executable files
+holstain-chain
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+### CMake ###
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
