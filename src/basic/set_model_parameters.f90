@@ -21,11 +21,11 @@ subroutine set_model_parameters
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
-  Nt = aint(5d0/dt)+1
+  Nt = aint(1d0/dt)+1
 
 !'MTEF', 'GQME_K'
 
-  calc_mode = 'MTEF'
+  calc_mode = 'CTEF'
 !  calc_mode = 'PTEF'
 !  calc_mode = 'GQME_K'
 !  calc_mode = 'GQME_T'
