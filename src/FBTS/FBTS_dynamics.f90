@@ -10,13 +10,18 @@ subroutine FBTS_dynamics
   integer :: isite
   real(8) :: pop(0:Nt+1,Lsite),pop_l(0:Nt+1,Lsite)
   real(8) :: Ekin_FBTS(0:Nt+1),Ekin_FBTS_l(0:Nt+1)
+  real(8) :: Ecoup_FBTS(0:Nt+1),Ecoup_FBTS_l(0:Nt+1)
+  real(8) :: Ebath_FBTS(0:Nt+1),Ebath_FBTS_l(0:Nt+1)
   real(8) :: Etot_FBTS(0:Nt+1),Etot_FBTS_l(0:Nt+1)
   complex(8) :: zpop0(Lsite),zEkin0_FBTS,zEtot0_FBTS
+  complex(8) :: zEcoup0_FBTS,zEbath0_FBTS
   integer :: icout  = 0
   real(8) :: Etot0
 
   pop_l = 0d0
   Ekin_FBTS_l = 0d0
+  Ecoup_FBTS_l = 0d0
+  Ebath_FBTS_l = 0d0
   Etot_FBTS_l = 0d0
 
   do itraj = 1,Ntraj
@@ -31,8 +36,10 @@ subroutine FBTS_dynamics
 
     call FBTS_population(zpop0)
     pop_l(0,:) = pop_l(0,:)  + zpop0(:)*zweight0
-    call FBTS_Ekin(zEkin0_FBTS,zEtot0_FBTS)
+    call FBTS_Ekin(zEkin0_FBTS,zEcoup0_FBTS,zEbath0_FBTS,zEtot0_FBTS)
     Ekin_FBTS_l(0) = Ekin_FBTS_l(0)  + zEkin0_FBTS*zweight0
+    Ecoup_FBTS_l(0) = Ecoup_FBTS_l(0)  + zEcoup0_FBTS*zweight0
+    Ebath_FBTS_l(0) = Ebath_FBTS_l(0)  + zEbath0_FBTS*zweight0
     Etot_FBTS_l(0) = Etot_FBTS_l(0)  + zEtot0_FBTS*zweight0
 
     if(itraj == 1)then
@@ -47,8 +54,10 @@ subroutine FBTS_dynamics
       call FBTS_dt_evolve_quantum !_traceless
       call FBTS_population(zpop0)
       pop_l(it+1,:) = pop_l(it+1,:)  + zpop0(:)*zweight0
-      call FBTS_Ekin(zEkin0_FBTS,zEtot0_FBTS)
+      call FBTS_Ekin(zEkin0_FBTS,zEcoup0_FBTS,zEbath0_FBTS,zEtot0_FBTS)
       Ekin_FBTS_l(it+1) = Ekin_FBTS_l(it+1)  + zEkin0_FBTS*zweight0
+      Ecoup_FBTS_l(it+1) = Ecoup_FBTS_l(it+1)  + zEcoup0_FBTS*zweight0
+      Ebath_FBTS_l(it+1) = Ebath_FBTS_l(it+1)  + zEbath0_FBTS*zweight0
       Etot_FBTS_l(it+1) = Etot_FBTS_l(it+1)  + zEtot0_FBTS*zweight0
 
     if(itraj == 1)then
@@ -68,6 +77,10 @@ subroutine FBTS_dynamics
   pop = pop/Ntraj
   call MPI_ALLREDUCE(Ekin_FBTS_l,Ekin_FBTS,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
   Ekin_FBTS = Ekin_FBTS/Ntraj
+  call MPI_ALLREDUCE(Ecoup_FBTS_l,Ecoup_FBTS,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+  Ecoup_FBTS = Ecoup_FBTS/Ntraj
+  call MPI_ALLREDUCE(Ebath_FBTS_l,Ebath_FBTS,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+  Ebath_FBTS = Ebath_FBTS/Ntraj
   call MPI_ALLREDUCE(Etot_FBTS_l,Etot_FBTS,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
   Etot_FBTS = Etot_FBTS/Ntraj
 
@@ -81,7 +94,7 @@ subroutine FBTS_dynamics
   if(myrank == Nprocs-1)then
     open(21,file="FBTS_Ekin.out")
     do it = 0,Nt+1
-      write(21,"(999e26.16e3)")dt*it,Ekin_FBTS(it),Etot_FBTS(it)
+      write(21,"(999e26.16e3)")dt*it,Ekin_FBTS(it),Ecoup_FBTS(it),Ebath_FBTS(it),Etot_FBTS(it)
     end do
     close(21)
   end if
@@ -104,10 +117,10 @@ subroutine FBTS_population(zpop0)
 
 end subroutine FBTS_population
 !===============================================================================
-subroutine FBTS_Ekin(zEkin0,zEtot0)
+subroutine FBTS_Ekin(zEkin0,zEcoup0,zEbath0,zEtot0)
   use global_variables
   implicit none
-  complex(8) :: zEkin0,zEtot0
+  complex(8) :: zEkin0,zEcoup0,zEbath0,zEtot0
   complex(8) :: zdensity_matrix(Lsite,Lsite)
   complex(8) :: zdensity_matrix0(Lsite,Lsite)
   real(8) :: n(Lsite),Htot_t(Lsite,Lsite)
@@ -123,24 +136,41 @@ subroutine FBTS_Ekin(zEkin0,zEtot0)
 
   zdensity_matrix0 = zdensity_matrix
 
-
+! kinetic
   zdensity_matrix = zdensity_matrix0*Hmat_kin
   zEkin0 = sum(zdensity_matrix)
 
-!  return
+! coupling
+  Htot_t = 0d0
+  do i = 1,Lsite
+    Htot_t(i,i) = Htot_t(i,i) - gamma*sqrt(2d0*mass*omega0)*X_HO(i)
+  end do
+  zdensity_matrix = zdensity_matrix0*Htot_t
+  zEcoup0 = sum(zdensity_matrix)
 
+! bath
+  Htot_t = 0d0
+  ss = sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
+  do i = 1,Lsite
+    Htot_t(i,i) = Htot_t(i,i) + ss
+  end do
+  zdensity_matrix = zdensity_matrix0*Htot_t
+  zEbath0 = sum(zdensity_matrix)
+
+
+! total
   Htot_t = Hmat_kin
   do i = 1,Lsite
     Htot_t(i,i) = Htot_t(i,i) - gamma*sqrt(2d0*mass*omega0)*X_HO(i)
   end do
 
+
   ss = sum(0.5d0*mass*V_HO**2 + 0.5d0*X_HO**2*omega0**2*mass)
-  ss = ss - sum(  -gamma*sqrt(2d0*mass*omega0)*X_HO(:) ) ! traceless
+!  ss = ss - sum(  -gamma*sqrt(2d0*mass*omega0)*X_HO(:) ) ! traceless
 
   do i = 1,Lsite
     Htot_t(i,i) = Htot_t(i,i) + ss 
   end do
-
 
   zdensity_matrix = zdensity_matrix0 *Htot_t
   zEtot0 = sum(zdensity_matrix)
