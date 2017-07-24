@@ -11,6 +11,12 @@ module CTEF_mod
 
   integer,parameter :: Nphase = 2
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
+  complex(8),allocatable :: zHO_dot_CTEF(:,:)
+
+  complex(8) :: zSs_CTEF(2,2), zDs_CTEF(2,2)
+  complex(8) :: zSb_CTEF(2,2), zDb_CTEF(2,2)
+  complex(8) :: zEs_CTEF(2,2), zEc_CTEF(2,2), zEb_CTEF(2,2)
+  complex(8),allocatable :: zX_HO_CTEF(:,:,:)
 
   public :: CTEF
 
@@ -30,6 +36,8 @@ module CTEF_mod
       integer :: i,j
 
       allocate(zpsi_CTEF(Lsite,2),zHO_CTEF(Lsite,2),Hmat_kin(Lsite,Lsite))
+      allocate(zHO_dot_CTEF(Lsite,2))
+      allocate(zX_HO_CTEF(Lsite,2,2))
 
       Hmat_kin = 0d0
       do i =1,Lsite
@@ -162,8 +170,19 @@ module CTEF_mod
     subroutine propagation(norm_CTEF_t,Ekin_CTEF_t)
       implicit none
       real(8),intent(out) :: norm_CTEF_t(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
+      integer :: it
 
       call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(0))
+
+      zHO_dot_CTEF = 0d0
+      call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+
+      do it = 0,Nt-1
+
+!        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+        call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
+        
+      end do
 
     end subroutine propagation
 !-----------------------------------------------------------------------------------------
@@ -181,5 +200,81 @@ module CTEF_mod
       norm = sum(abs(zpsi_in(:,:))**2) + 2d0*real(zs_elec*zs_bath)
 
     end subroutine calc_norm
+!-----------------------------------------------------------------------------------------
+    subroutine refine_effective_hamiltonian(zpsi_in,zHO_in,zHO_dot_inout)
+      implicit none
+      complex(8),intent(in) :: zpsi_in(Lsite,2),zHO_in(Lsite,2)
+      complex(8),intent(inout) :: zHO_dot_inout(Lsite,2)
+      complex(8) :: zhpsi_t(Lsite,2)
+      complex(8) :: zs
+      integer :: i,j
+
+! zSs
+      zSs_CTEF(1,1) = sum(abs(zpsi_in(:,1))**2)
+      zSs_CTEF(2,2) = sum(abs(zpsi_in(:,2))**2)
+      zSs_CTEF(1,2) = sum(conjg(zpsi_in(:,1))*zpsi_in(:,2))
+      zSs_CTEF(2,1) = conjg(zSs_CTEF(1,2))
+! zSb
+      zSb_CTEF(1,1) = 1d0; zSb_CTEF(2,2) = 1d0
+      zs = -0.5d0*sum(abs(zHO_in(:,:))**2)+sum(conjg(zHO_in(:,1))*zHO_in(:,2))
+      zSb_CTEF(1,2) = exp(zs)
+      zSb_CTEF(2,1) = conjg(zSb_CTEF(1,2))
+
+! zX_HO
+      do i = 1,2
+        do j = 1,2
+          zX_HO_CTEF(:,i,j) = sqrt(1d0/(2d0*mass*omega0)) &
+            *(conjg(zHO_in(:,i)) + zHO_in(:,j)) &
+            *zSb_CTEF(i,j)
+        end do
+      end do
+
+! zEb
+      do i = 1,2
+        do j = 1,2
+          zEb_CTEF(i,j) = omega0*( &
+            sum( conjg(zHO_in(:,i))*zHO_in(:,j) ) + 0.5d0*dble(Lsite) &
+            )*zSb_CTEF(i,j)
+        end do
+      end do
+
+! zEs
+      call hs_zpsi(zpsi_in,zhpsi_t)
+      zEs_CTEF(1,1) = real( sum( conjg(zpsi_in(:,1))*zhpsi_t(:,1) ))
+      zEs_CTEF(2,2) = real( sum( conjg(zpsi_in(:,2))*zhpsi_t(:,2) ))
+      zEs_CTEF(1,2) = sum(conjg(zpsi_in(:,1))*zhpsi_t(:,2))
+      zEs_CTEF(2,1) = conjg(zEs_CTEF(1,2))
+
+! zEc
+      zEc_CTEF(1,1) = sum( zX_HO_CTEF(:,1,1)*abs(zpsi_in(:,1))**2)
+      zEc_CTEF(2,2) = sum( zX_HO_CTEF(:,2,2)*abs(zpsi_in(:,2))**2)
+      zEc_CTEF(1,2) = sum( zX_HO_CTEF(:,1,2)*conjg(zpsi_in(:,1))*zpsi_in(:,2))
+      zEc_CTEF(2,1) = conjg(zEc_CTEF(1,2))
+      zEc_CTEF = -gamma*sqrt(2d0*mass*omega0) * zEc_CTEF 
+
+
+    end subroutine refine_effective_hamiltonian
+!-----------------------------------------------------------------------------------------
+    subroutine hs_zpsi(zpsi_in,zhpsi_out)
+      implicit none
+      integer :: i
+      complex(8),intent(in) :: zpsi_in(Lsite,2)
+      complex(8),intent(out) :: zhpsi_out(Lsite,2)
+
+
+      zhpsi_out(1,1) = -t0*(zpsi_in(2,1) + zpsi_in(Lsite,1))
+      do i = 2,Lsite-1
+        zhpsi_out(i,1) = -t0*(zpsi_in(i+1,1) + zpsi_in(i-1,1))
+      end do
+      zhpsi_out(Lsite,1) = -t0*(zpsi_in(1,1) + zpsi_in(Lsite-1,1))
+
+      zhpsi_out(1,2) = -t0*(zpsi_in(2,2) + zpsi_in(Lsite,2))
+      do i = 2,Lsite-1
+        zhpsi_out(i,2) = -t0*(zpsi_in(i+1,2) + zpsi_in(i-1,2))
+      end do
+      zhpsi_out(Lsite,2) = -t0*(zpsi_in(1,2) + zpsi_in(Lsite-1,2))
+
+
+    end subroutine hs_zpsi
 !-----------------------------------------------------------------------------------------
 end module CTEF_mod
