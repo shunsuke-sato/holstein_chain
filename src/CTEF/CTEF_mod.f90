@@ -10,7 +10,7 @@ module CTEF_mod
 
   private
 
-  integer,parameter :: Nphase = 2
+  integer,parameter :: Nphase = 2, Nscf_refine = 2
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -18,7 +18,8 @@ module CTEF_mod
   complex(8) :: zSs_inv_CTEF(2,2)
   complex(8) :: zSb_CTEF(2,2), zDb_CTEF(2,2)
   complex(8) :: zEs_CTEF(2,2), zEc_CTEF(2,2), zEb_CTEF(2,2)
-  complex(8),allocatable :: zX_HO_CTEF(:,:,:)
+  complex(8) :: zHb_eff_CTEF(2,2), zSsb_CTEF(2,2), zSsb_inv_CTEF(2,2)
+  complex(8),allocatable :: zX_HO_CTEF(:,:,:), zF_HO_CTEF(:,:)
 
   public :: CTEF
 
@@ -39,7 +40,7 @@ module CTEF_mod
 
       allocate(zpsi_CTEF(Lsite,2),zHO_CTEF(Lsite,2),Hmat_kin(Lsite,Lsite))
       allocate(zHO_dot_CTEF(Lsite,2))
-      allocate(zX_HO_CTEF(Lsite,2,2))
+      allocate(zX_HO_CTEF(Lsite,2,2), zF_HO_CTEF(Lsite,2))
 
       Hmat_kin = 0d0
       do i =1,Lsite
@@ -208,8 +209,8 @@ module CTEF_mod
       complex(8),intent(in) :: zpsi_in(Lsite,2),zHO_in(Lsite,2)
       complex(8),intent(inout) :: zHO_dot_inout(Lsite,2)
       complex(8) :: zhpsi_t(Lsite,2)
-      complex(8) :: zs
-      integer :: i,j
+      complex(8) :: zs, zvec(2)
+      integer :: i,j, iscf
 
 ! zSs
       zSs_CTEF(1,1) = sum(abs(zpsi_in(:,1))**2)
@@ -223,6 +224,9 @@ module CTEF_mod
       zs = -0.5d0*sum(abs(zHO_in(:,:))**2)+sum(conjg(zHO_in(:,1))*zHO_in(:,2))
       zSb_CTEF(1,2) = exp(zs)
       zSb_CTEF(2,1) = conjg(zSb_CTEF(1,2))
+
+      zSsb_CTEF = zSs_CTEF*zSb_CTEF
+      call inverse_2x2_matrix(zSsb_CTEF,zSsb_inv_CTEF)
 
 ! zX_HO
       do i = 1,2
@@ -256,24 +260,61 @@ module CTEF_mod
       zEc_CTEF(2,1) = conjg(zEc_CTEF(1,2))
       zEc_CTEF = -gamma*sqrt(2d0*mass*omega0) * zEc_CTEF 
 
+      do i = 1, Lsite
+        zF_HO_CTEF(i,1) = abs(zpsi_in(i,1))**2 &
+          + conjg(zpsi_in(i,1))*zpsi_in(i,2)*zSb_CTEF(1,2)
+        zF_HO_CTEF(i,2) = abs(zpsi_in(i,2))**2 &
+          + conjg(zpsi_in(i,2))*zpsi_in(i,1)*zSb_CTEF(2,1)
+      end do
+      zF_HO_CTEF = -gamma*sqrt(2d0*mass*omega0)  * zF_HO_CTEF
+
+
+      do iscf = 1, Nscf_refine
 
 ! zDb
-      zDb_CTEF(1,1) = real( 0.5d0*zI*sum(conjg(zHO_in(:,1))*zHO_dot_inout(:,1) &
-        -conjg(zHO_dot_inout(:,1))*zHO_in(:,1) ) )
-      zDb_CTEF(2,2) = real( 0.5d0*zI*sum(conjg(zHO_in(:,2))*zHO_dot_inout(:,2) &
-        -conjg(zHO_dot_inout(:,2))*zHO_in(:,2) ) )
-      zDb_CTEF(1,2) = zI*sum(-0.5d0*( &
-        conjg(zHO_dot_inout(:,2))*zHO_in(:,2) &
-       +zHO_dot_inout(:,2)*conjg(zHO_in(:,2)) ) &
-       +conjg(zHO_in(:,1))*zHO_dot_inout(:,2) )*zSb_CTEF(1,2)
-      zDb_CTEF(2,1) = zI*sum(-0.5d0*( &
-        conjg(zHO_dot_inout(:,1))*zHO_in(:,1) &
-       +zHO_dot_inout(:,1)*conjg(zHO_in(:,1)) ) &
-       +conjg(zHO_in(:,2))*zHO_dot_inout(:,1) )*zSb_CTEF(2,1)
+        zDb_CTEF(1,1) = real( 0.5d0*zI*sum(conjg(zHO_in(:,1))*zHO_dot_inout(:,1) &
+          -conjg(zHO_dot_inout(:,1))*zHO_in(:,1) ) )
+        zDb_CTEF(2,2) = real( 0.5d0*zI*sum(conjg(zHO_in(:,2))*zHO_dot_inout(:,2) &
+          -conjg(zHO_dot_inout(:,2))*zHO_in(:,2) ) )
+        zDb_CTEF(1,2) = zI*sum(-0.5d0*( &
+          conjg(zHO_dot_inout(:,2))*zHO_in(:,2) &
+          +zHO_dot_inout(:,2)*conjg(zHO_in(:,2)) ) &
+          +conjg(zHO_in(:,1))*zHO_dot_inout(:,2) )*zSb_CTEF(1,2)
+        zDb_CTEF(2,1) = zI*sum(-0.5d0*( &
+          conjg(zHO_dot_inout(:,1))*zHO_in(:,1) &
+          +zHO_dot_inout(:,1)*conjg(zHO_in(:,1)) ) &
+          +conjg(zHO_in(:,2))*zHO_dot_inout(:,1) )*zSb_CTEF(2,1)
 
-      call heff_zpsi(zpsi_in,zhpsi_t)
-        
+        call heff_zpsi(zpsi_in,zhpsi_t)
+        zDs_CTEF(1,1) = sum( conjg(zpsi_in(:,1))*zhpsi_t(:,1) )
+        zDs_CTEF(2,2) = sum( conjg(zpsi_in(:,2))*zhpsi_t(:,2) )
+        zDs_CTEF(1,2) = sum( conjg(zpsi_in(:,1))*zhpsi_t(:,2) )
+        zDs_CTEF(2,1) = conjg(zDs_CTEF(1,2))
 
+        zHb_eff_CTEF(1,1) = omega0 - zI*real(zDs_CTEF(1,1)/zI) &
+          +real(zDs_CTEF(1,2)*zSb_CTEF(1,2) + zSs_CTEF(1,2)*zDb_CTEF(1,2)) &
+          -real(zEs_CTEF(1,2)*zSb_CTEF(1,2) + zEb_CTEF(1,2)*zSs_CTEF(1,2) + zEc_CTEF(1,2))
+
+        zHb_eff_CTEF(2,2) = omega0 - zI*real(zDs_CTEF(2,2)/zI) &
+          +real(zDs_CTEF(2,1)*zSb_CTEF(2,1) + zSs_CTEF(2,1)*zDb_CTEF(2,1)) &
+          -real(zEs_CTEF(2,1)*zSb_CTEF(2,1) + zEb_CTEF(2,1)*zSs_CTEF(2,1) + zEc_CTEF(2,1))
+
+        zHb_eff_CTEF(1,2) = -zDs_CTEF(1,2)*zSb_CTEF(1,2) -zSs_CTEF(1,2)*zDb_CTEF(1,2) &
+          +zEs_CTEF(1,2)*zSb_CTEF(1,2) + zEb_CTEF(1,2)*zSs_CTEF(1,2) + zEc_CTEF(1,2)
+
+        zHb_eff_CTEF(2,1) = -zDs_CTEF(2,1)*zSb_CTEF(2,1) -zSs_CTEF(2,1)*zDb_CTEF(2,1) &
+          +zEs_CTEF(2,1)*zSb_CTEF(2,1) + zEb_CTEF(2,1)*zSs_CTEF(2,1) + zEc_CTEF(2,1)
+
+        do i = 1, Lsite
+          zvec(1) = zHb_eff_CTEF(1,1)*zHO_in(i,1) + zHb_eff_CTEF(1,2)*zHO_in(i,2) &
+            + zF_HO_CTEF(i,1)
+          zvec(2) = zHb_eff_CTEF(2,1)*zHO_in(i,1) + zHb_eff_CTEF(2,2)*zHO_in(i,2) &
+            + zF_HO_CTEF(i,2)
+          zHO_dot_inout(i,1) = (zSsb_inv_CTEF(1,1)*zvec(1) + zSsb_inv_CTEF(1,2)*zvec(2) )/zI 
+          zHO_dot_inout(i,2) = (zSsb_inv_CTEF(2,1)*zvec(1) + zSsb_inv_CTEF(2,2)*zvec(2) )/zI 
+        end do
+
+      end do
 
     end subroutine refine_effective_hamiltonian
 !-----------------------------------------------------------------------------------------
