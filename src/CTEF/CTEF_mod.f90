@@ -5,6 +5,7 @@
 !---------------------------------------------------!
 module CTEF_mod
   use global_variables
+  use math_module
   implicit none
 
   private
@@ -14,6 +15,7 @@ module CTEF_mod
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
   complex(8) :: zSs_CTEF(2,2), zDs_CTEF(2,2)
+  complex(8) :: zSs_inv_CTEF(2,2)
   complex(8) :: zSb_CTEF(2,2), zDb_CTEF(2,2)
   complex(8) :: zEs_CTEF(2,2), zEc_CTEF(2,2), zEb_CTEF(2,2)
   complex(8),allocatable :: zX_HO_CTEF(:,:,:)
@@ -214,6 +216,8 @@ module CTEF_mod
       zSs_CTEF(2,2) = sum(abs(zpsi_in(:,2))**2)
       zSs_CTEF(1,2) = sum(conjg(zpsi_in(:,1))*zpsi_in(:,2))
       zSs_CTEF(2,1) = conjg(zSs_CTEF(1,2))
+      call inverse_2x2_matrix(zSs_CTEF,zSs_inv_CTEF)
+
 ! zSb
       zSb_CTEF(1,1) = 1d0; zSb_CTEF(2,2) = 1d0
       zs = -0.5d0*sum(abs(zHO_in(:,:))**2)+sum(conjg(zHO_in(:,1))*zHO_in(:,2))
@@ -253,14 +257,31 @@ module CTEF_mod
       zEc_CTEF = -gamma*sqrt(2d0*mass*omega0) * zEc_CTEF 
 
 
+! zDb
+      zDb_CTEF(1,1) = real( 0.5d0*zI*sum(conjg(zHO_in(:,1))*zHO_dot_inout(:,1) &
+        -conjg(zHO_dot_inout(:,1))*zHO_in(:,1) ) )
+      zDb_CTEF(2,2) = real( 0.5d0*zI*sum(conjg(zHO_in(:,2))*zHO_dot_inout(:,2) &
+        -conjg(zHO_dot_inout(:,2))*zHO_in(:,2) ) )
+      zDb_CTEF(1,2) = zI*sum(-0.5d0*( &
+        conjg(zHO_dot_inout(:,2))*zHO_in(:,2) &
+       +zHO_dot_inout(:,2)*conjg(zHO_in(:,2)) ) &
+       +conjg(zHO_in(:,1))*zHO_dot_inout(:,2) )*zSb_CTEF(1,2)
+      zDb_CTEF(2,1) = zI*sum(-0.5d0*( &
+        conjg(zHO_dot_inout(:,1))*zHO_in(:,1) &
+       +zHO_dot_inout(:,1)*conjg(zHO_in(:,1)) ) &
+       +conjg(zHO_in(:,2))*zHO_dot_inout(:,1) )*zSb_CTEF(2,1)
+
+      call heff_zpsi(zpsi_in,zhpsi_t)
+        
+
+
     end subroutine refine_effective_hamiltonian
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
-      integer :: i
       complex(8),intent(in) :: zpsi_in(Lsite,2)
       complex(8),intent(out) :: zhpsi_out(Lsite,2)
-
+      integer :: i
 
       zhpsi_out(1,1) = -t0*(zpsi_in(2,1) + zpsi_in(Lsite,1))
       do i = 2,Lsite-1
@@ -276,5 +297,34 @@ module CTEF_mod
 
 
     end subroutine hs_zpsi
+!-----------------------------------------------------------------------------------------
+    subroutine heff_zpsi(zpsi_in,zhpsi_out)
+      implicit none
+      complex(8),intent(in) :: zpsi_in(Lsite,2)
+      complex(8),intent(out) :: zhpsi_out(Lsite,2)
+      complex(8) :: zhpsi_t(Lsite,2)
+      complex(8) :: zhs_psi_t(Lsite,2)
+      real(8) :: c0
+
+      c0 = -gamma*sqrt(2d0*mass*omega0)
+      call hs_zpsi(zpsi_in,zhs_psi_t)
+
+      zhpsi_t(:,1) = zSb_CTEF(1,1)*zhs_psi_t(:,1) + zSb_CTEF(1,2)*zhs_psi_t(:,2)
+      zhpsi_t(:,2) = zSb_CTEF(2,1)*zhs_psi_t(:,1) + zSb_CTEF(2,2)*zhs_psi_t(:,2)
+
+      zhpsi_t(:,1) = zhpsi_t(:,1) &
+        +c0*zX_HO_CTEF(:,1,1)*zhs_psi_t(:,1) +c0*zX_HO_CTEF(:,1,2)*zhs_psi_t(:,2)
+      zhpsi_t(:,2) = zhpsi_t(:,2) &
+        +c0*zX_HO_CTEF(:,2,1)*zhs_psi_t(:,2) +c0*zX_HO_CTEF(:,2,2)*zhs_psi_t(:,2)
+
+      zhpsi_t(:,1) = zhpsi_t(:,1) &
+        -zDb_CTEF(1,1)*zhs_psi_t(:,1) -zDb_CTEF(1,2)*zhs_psi_t(:,2)
+      zhpsi_t(:,2) = zhpsi_t(:,2) &
+        -zDb_CTEF(2,1)*zhs_psi_t(:,1) -zDb_CTEF(2,2)*zhs_psi_t(:,2)
+
+      zhpsi_out(:,1) = zSs_inv_CTEF(1,1)*zhpsi_t(:,1) + zSs_inv_CTEF(1,2)*zhpsi_t(:,2)
+      zhpsi_out(:,2) = zSs_inv_CTEF(2,1)*zhpsi_t(:,1) + zSs_inv_CTEF(2,2)*zhpsi_t(:,2)
+
+    end subroutine heff_zpsi
 !-----------------------------------------------------------------------------------------
 end module CTEF_mod
