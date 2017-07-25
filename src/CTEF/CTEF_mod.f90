@@ -10,7 +10,7 @@ module CTEF_mod
 
   private
 
-  integer,parameter :: Nphase = 2, Nscf_refine = 2
+  integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -182,7 +182,7 @@ module CTEF_mod
 
       do it = 0,Nt-1
 
-!        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
         
       end do
@@ -317,6 +317,81 @@ module CTEF_mod
       end do
 
     end subroutine refine_effective_hamiltonian
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_etrs(zpsi_inout,zHO_inout,zHO_dot_inout)
+      implicit none
+      complex(8),intent(inout) :: zpsi_inout(Lsite,2),zHO_inout(Lsite,2)
+      complex(8),intent(inout) :: zHO_dot_inout(Lsite,2)
+      complex(8) :: zpsi_t(Lsite,2),zHO_t(Lsite,2)
+      integer :: iscf
+
+! t -> t + dt/2
+      call dt_evolve_elec(zpsi_inout,dt*0.5d0)
+      call dt_evolve_bath(zHO_inout,dt*0.5d0)
+      zpsi_t = zpsi_inout
+      zHO_t = zHO_inout
+
+
+      call dt_evolve_elec(zpsi_inout,dt*0.5d0)
+      call dt_evolve_bath(zHO_inout,dt*0.5d0)
+
+      do iscf = 1, Nscf_pred_corr
+        call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
+        zHO_inout = zHO_t
+        zpsi_inout = zpsi_t
+
+        call dt_evolve_elec(zpsi_inout,dt*0.5d0)
+        call dt_evolve_bath(zHO_inout,dt*0.5d0)
+
+      end do
+
+    end subroutine dt_evolve_etrs
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_elec(zpsi_inout,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zpsi_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      integer,parameter :: Nexp_Taylor = 6
+      complex(8) :: zpsi_t(Lsite,2),zhpsi_t(Lsite,2)
+      integer :: iexp
+      complex(8) :: zfact
+
+      zpsi_t = zpsi_inout
+      zfact = 1d0
+      do iexp = 1,Nexp_Taylor
+        zfact = zfact*(-zI*dt_t)/iexp
+        call heff_zpsi(zpsi_t,zhpsi_t)
+        zpsi_inout = zpsi_inout + zfact*zhpsi_t
+        zpsi_t = zhpsi_t
+      end do
+
+    end subroutine dt_evolve_elec
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath(zHO_inout,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      integer,parameter :: Nexp_Taylor = 6
+      complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2)
+      integer :: iexp
+      complex(8) :: zfact
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_CTEF
+
+      zHO_t = zHO_inout
+      zfact = 1d0
+      do iexp = 1,Nexp_Taylor
+        zfact = zfact*(-zI*dt_t)/iexp
+        zhHO_t(:,1) = zHb_eff_CTEF(1,1)*zHO_t(:,1) + zHb_eff_CTEF(1,2)*zHO_t(:,2)
+        zhHO_t(:,2) = zHb_eff_CTEF(2,1)*zHO_t(:,1) + zHb_eff_CTEF(2,2)*zHO_t(:,2)
+
+        zHO_inout = zHO_inout + zfact*zhHO_t
+        zHO_t = zhHO_t
+      end do
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_CTEF
+
+    end subroutine dt_evolve_bath
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
