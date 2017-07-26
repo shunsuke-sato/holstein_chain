@@ -297,7 +297,7 @@ module CTEF_mod
         zDs_CTEF(1,1) = sum( conjg(zpsi_in(:,1))*zhpsi_t(:,1) )
         zDs_CTEF(2,2) = sum( conjg(zpsi_in(:,2))*zhpsi_t(:,2) )
         zDs_CTEF(1,2) = sum( conjg(zpsi_in(:,1))*zhpsi_t(:,2) )
-        zDs_CTEF(2,1) = conjg(zDs_CTEF(1,2))
+        zDs_CTEF(2,1) = sum( conjg(zpsi_in(:,2))*zhpsi_t(:,1) )
 
         zHb_eff_CTEF(1,1) = omega0 - zI*real(zDs_CTEF(1,1)/zI) &
           +real(zDs_CTEF(1,2)*zSb_CTEF(1,2) + zSs_CTEF(1,2)*zDb_CTEF(1,2)) &
