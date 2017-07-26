@@ -59,7 +59,7 @@ module CTEF_mod
       complex(8) :: zpsi_store(Lsite,2),zHO_store(Lsite,2)
       complex(8) :: zweight
       real(8) :: norm, phi0,phi
-      integer :: itraj, iphase
+      integer :: itraj, iphase, it
       real(8) :: norm_CTEF(0:Nt+1), Ekin_CTEF(0:Nt+1)
       real(8) :: norm_CTEF_l(0:Nt+1), Ekin_CTEF_l(0:Nt+1)
       real(8) :: norm_CTEF_t(0:Nt+1), Ekin_CTEF_t(0:Nt+1)
@@ -90,7 +90,14 @@ module CTEF_mod
 
       norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-      if(myrank == 0)write(*,"(A,2x,99e26.16e3)")"norm",norm_CTEF(0)
+
+      if(myrank == 0)then
+        open(21,file="CTEF_norm.out")
+        do it = 0,Nt+1
+          write(21,"(999e26.16e3)")dt*it,norm_CTEF(it)
+        end do
+        close(21)
+      end if
 
     end subroutine CTEF_dynamics
 !-----------------------------------------------------------------------------------------
