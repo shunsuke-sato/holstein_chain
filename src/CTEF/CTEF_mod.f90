@@ -300,7 +300,7 @@ module CTEF_mod
         zDs_CTEF(2,1) = sum( conjg(zpsi_in(:,2))*zhpsi_t(:,1) )
 
 
-        zHb_eff_CTEF = omega0*zSb_CTEF
+        zHb_eff_CTEF = omega0*zSsb_CTEF
         zHb_eff_CTEF(1,1) = zHb_eff_CTEF(1,1) - zI*real(zDs_CTEF(1,1)/zI) &
           +real(zDs_CTEF(1,2)*zSb_CTEF(1,2) + zSs_CTEF(1,2)*zDb_CTEF(1,2)) &
           -real(zEs_CTEF(1,2)*zSb_CTEF(1,2) + zEb_CTEF(1,2)*zSs_CTEF(1,2) + zEc_CTEF(1,2))
@@ -447,9 +447,9 @@ module CTEF_mod
         +c0*zX_HO_CTEF(:,2,1)*zhs_psi_t(:,2) +c0*zX_HO_CTEF(:,2,2)*zhs_psi_t(:,2)
 
       zhpsi_t(:,1) = zhpsi_t(:,1) &
-        -zDb_CTEF(1,1)*zhs_psi_t(:,1) -zDb_CTEF(1,2)*zhs_psi_t(:,2)
+        -zDb_CTEF(1,1)*zpsi_in(:,1) -zDb_CTEF(1,2)*zpsi_in(:,2)
       zhpsi_t(:,2) = zhpsi_t(:,2) &
-        -zDb_CTEF(2,1)*zhs_psi_t(:,1) -zDb_CTEF(2,2)*zhs_psi_t(:,2)
+        -zDb_CTEF(2,1)*zpsi_in(:,1) -zDb_CTEF(2,2)*zpsi_in(:,2)
 
       zhpsi_out(:,1) = zSb_inv_CTEF(1,1)*zhpsi_t(:,1) + zSb_inv_CTEF(1,2)*zhpsi_t(:,2)
       zhpsi_out(:,2) = zSb_inv_CTEF(2,1)*zhpsi_t(:,1) + zSb_inv_CTEF(2,2)*zhpsi_t(:,2)
