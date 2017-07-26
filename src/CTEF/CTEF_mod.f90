@@ -274,7 +274,7 @@ module CTEF_mod
         zF_HO_CTEF(i,2) = abs(zpsi_in(i,2))**2 &
           + conjg(zpsi_in(i,2))*zpsi_in(i,1)*zSb_CTEF(2,1)
       end do
-      zF_HO_CTEF = -gamma*sqrt(2d0*mass*omega0)  * zF_HO_CTEF
+      zF_HO_CTEF = -gamma* zF_HO_CTEF
 
 
       do iscf = 1, Nscf_refine
@@ -299,19 +299,24 @@ module CTEF_mod
         zDs_CTEF(1,2) = sum( conjg(zpsi_in(:,1))*zhpsi_t(:,2) )
         zDs_CTEF(2,1) = sum( conjg(zpsi_in(:,2))*zhpsi_t(:,1) )
 
-        zHb_eff_CTEF(1,1) = omega0 - zI*real(zDs_CTEF(1,1)/zI) &
+
+        zHb_eff_CTEF = omega0*zSb_CTEF
+        zHb_eff_CTEF(1,1) = zHb_eff_CTEF(1,1) - zI*real(zDs_CTEF(1,1)/zI) &
           +real(zDs_CTEF(1,2)*zSb_CTEF(1,2) + zSs_CTEF(1,2)*zDb_CTEF(1,2)) &
           -real(zEs_CTEF(1,2)*zSb_CTEF(1,2) + zEb_CTEF(1,2)*zSs_CTEF(1,2) + zEc_CTEF(1,2))
 
-        zHb_eff_CTEF(2,2) = omega0 - zI*real(zDs_CTEF(2,2)/zI) &
+        zHb_eff_CTEF(2,2) = zHb_eff_CTEF(2,2) - zI*real(zDs_CTEF(2,2)/zI) &
           +real(zDs_CTEF(2,1)*zSb_CTEF(2,1) + zSs_CTEF(2,1)*zDb_CTEF(2,1)) &
           -real(zEs_CTEF(2,1)*zSb_CTEF(2,1) + zEb_CTEF(2,1)*zSs_CTEF(2,1) + zEc_CTEF(2,1))
 
-        zHb_eff_CTEF(1,2) = -zDs_CTEF(1,2)*zSb_CTEF(1,2) -zSs_CTEF(1,2)*zDb_CTEF(1,2) &
+        zHb_eff_CTEF(1,2) = zHb_eff_CTEF(1,2) &
+          -zDs_CTEF(1,2)*zSb_CTEF(1,2) -zSs_CTEF(1,2)*zDb_CTEF(1,2) &
           +zEs_CTEF(1,2)*zSb_CTEF(1,2) + zEb_CTEF(1,2)*zSs_CTEF(1,2) + zEc_CTEF(1,2)
 
-        zHb_eff_CTEF(2,1) = -zDs_CTEF(2,1)*zSb_CTEF(2,1) -zSs_CTEF(2,1)*zDb_CTEF(2,1) &
+        zHb_eff_CTEF(2,1) = zHb_eff_CTEF(2,1) &
+          -zDs_CTEF(2,1)*zSb_CTEF(2,1) -zSs_CTEF(2,1)*zDb_CTEF(2,1) &
           +zEs_CTEF(2,1)*zSb_CTEF(2,1) + zEb_CTEF(2,1)*zSs_CTEF(2,1) + zEc_CTEF(2,1)
+
 
         do i = 1, Lsite
           zvec(1) = zHb_eff_CTEF(1,1)*zHO_in(i,1) + zHb_eff_CTEF(1,2)*zHO_in(i,2) &
