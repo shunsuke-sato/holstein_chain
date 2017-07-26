@@ -17,7 +17,7 @@ subroutine set_model_parameters
 
   Ntraj = 1000
 
-  dt = 0.04d0 !0.01d0 !0.04d0
+  dt = 0.01d0 !0.01d0 !0.04d0
 !  Nt = aint(30d0/dt)+1
 !  Nt = aint(25d0/dt)+1
 !  Nt = aint(5d0/dt)+1
