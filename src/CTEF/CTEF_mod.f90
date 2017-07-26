@@ -447,6 +447,11 @@ module CTEF_mod
         +c0*zX_HO_CTEF(:,2,1)*zhs_psi_t(:,2) +c0*zX_HO_CTEF(:,2,2)*zhs_psi_t(:,2)
 
       zhpsi_t(:,1) = zhpsi_t(:,1) &
+        +zEb_CTEF(1,1)*zpsi_in(:,1) +zEb_CTEF(1,2)*zpsi_in(:,2)
+      zhpsi_t(:,2) = zhpsi_t(:,2) &
+        +zEb_CTEF(2,1)*zpsi_in(:,1) +zEb_CTEF(2,2)*zpsi_in(:,2)
+
+      zhpsi_t(:,1) = zhpsi_t(:,1) &
         -zDb_CTEF(1,1)*zpsi_in(:,1) -zDb_CTEF(1,2)*zpsi_in(:,2)
       zhpsi_t(:,2) = zhpsi_t(:,2) &
         -zDb_CTEF(2,1)*zpsi_in(:,1) -zDb_CTEF(2,2)*zpsi_in(:,2)
