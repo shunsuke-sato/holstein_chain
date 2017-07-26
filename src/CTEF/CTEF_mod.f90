@@ -15,7 +15,7 @@ module CTEF_mod
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
   complex(8) :: zSs_CTEF(2,2), zDs_CTEF(2,2)
-  complex(8) :: zSs_inv_CTEF(2,2)
+  complex(8) :: zSb_inv_CTEF(2,2)
   complex(8) :: zSb_CTEF(2,2), zDb_CTEF(2,2)
   complex(8) :: zEs_CTEF(2,2), zEc_CTEF(2,2), zEb_CTEF(2,2)
   complex(8) :: zHb_eff_CTEF(2,2), zSsb_CTEF(2,2), zSsb_inv_CTEF(2,2)
@@ -224,15 +224,16 @@ module CTEF_mod
       zSs_CTEF(2,2) = sum(abs(zpsi_in(:,2))**2)
       zSs_CTEF(1,2) = sum(conjg(zpsi_in(:,1))*zpsi_in(:,2))
       zSs_CTEF(2,1) = conjg(zSs_CTEF(1,2))
-      call inverse_2x2_matrix(zSs_CTEF,zSs_inv_CTEF)
 
 ! zSb
       zSb_CTEF(1,1) = 1d0; zSb_CTEF(2,2) = 1d0
       zs = -0.5d0*sum(abs(zHO_in(:,:))**2)+sum(conjg(zHO_in(:,1))*zHO_in(:,2))
       zSb_CTEF(1,2) = exp(zs)
       zSb_CTEF(2,1) = conjg(zSb_CTEF(1,2))
+      call inverse_2x2_matrix(zSb_CTEF,zSb_inv_CTEF)
 
       zSsb_CTEF = zSs_CTEF*zSb_CTEF
+
       call inverse_2x2_matrix(zSsb_CTEF,zSsb_inv_CTEF)
 
 ! zX_HO
@@ -445,8 +446,8 @@ module CTEF_mod
       zhpsi_t(:,2) = zhpsi_t(:,2) &
         -zDb_CTEF(2,1)*zhs_psi_t(:,1) -zDb_CTEF(2,2)*zhs_psi_t(:,2)
 
-      zhpsi_out(:,1) = zSs_inv_CTEF(1,1)*zhpsi_t(:,1) + zSs_inv_CTEF(1,2)*zhpsi_t(:,2)
-      zhpsi_out(:,2) = zSs_inv_CTEF(2,1)*zhpsi_t(:,1) + zSs_inv_CTEF(2,2)*zhpsi_t(:,2)
+      zhpsi_out(:,1) = zSb_inv_CTEF(1,1)*zhpsi_t(:,1) + zSb_inv_CTEF(1,2)*zhpsi_t(:,2)
+      zhpsi_out(:,2) = zSb_inv_CTEF(2,1)*zhpsi_t(:,1) + zSb_inv_CTEF(2,2)*zhpsi_t(:,2)
 
     end subroutine heff_zpsi
 !-----------------------------------------------------------------------------------------
