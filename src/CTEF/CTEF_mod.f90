@@ -360,13 +360,15 @@ module CTEF_mod
 
 ! t -> t + dt/2
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-      call dt_evolve_bath(zHO_inout,dt*0.5d0)
+      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+!      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
       zpsi_t = zpsi_inout
       zHO_t = zHO_inout
 
 
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-      call dt_evolve_bath(zHO_inout,dt*0.5d0)
+      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+!      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       do iscf = 1, Nscf_pred_corr
         call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
@@ -374,7 +376,8 @@ module CTEF_mod
         zpsi_inout = zpsi_t
 
         call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-        call dt_evolve_bath(zHO_inout,dt*0.5d0)
+        call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+!        call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       end do
 
@@ -400,16 +403,30 @@ module CTEF_mod
 
     end subroutine dt_evolve_elec
 !-----------------------------------------------------------------------------------------
-    subroutine dt_evolve_bath(zHO_inout,dt_t)
+    subroutine dt_evolve_bath_direct(zHO_inout,zHO_dot_in,dt_t)
       implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      complex(8),intent(in) :: zHO_dot_in(Lsite,2)
+      real(8),intent(in) :: dt_t
+
+      zHO_inout = zHO_inout + dt_t*zHO_dot_CTEF
+      return
+    end subroutine dt_evolve_bath_direct
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath_taylor(zHO_inout,dt_t)
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
       integer,parameter :: Nexp_Taylor = 6
-      complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2)
+      complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
       integer :: iexp
       complex(8) :: zfact
 
-      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_CTEF
+      zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
+      zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
       zHO_t = zHO_inout
       zfact = 1d0
@@ -422,9 +439,9 @@ module CTEF_mod
         zHO_t = zhHO_t
       end do
 
-      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_CTEF
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
-    end subroutine dt_evolve_bath
+    end subroutine dt_evolve_bath_taylor
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
