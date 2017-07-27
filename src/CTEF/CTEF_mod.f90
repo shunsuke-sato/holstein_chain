@@ -60,9 +60,11 @@ module CTEF_mod
       complex(8) :: zweight
       real(8) :: norm, phi0,phi
       integer :: itraj, iphase, it
-      real(8) :: norm_CTEF(0:Nt+1), Ekin_CTEF(0:Nt+1)
-      real(8) :: norm_CTEF_l(0:Nt+1), Ekin_CTEF_l(0:Nt+1)
-      real(8) :: norm_CTEF_t(0:Nt+1), Ekin_CTEF_t(0:Nt+1)
+      real(8) :: norm_CTEF(0:Nt+1),norm_CTEF_l(0:Nt+1),norm_CTEF_t(0:Nt+1)
+      real(8) :: Ekin_CTEF(0:Nt+1),Ekin_CTEF_l(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
+      real(8) :: Ebath_CTEF(0:Nt+1),Ebath_CTEF_l(0:Nt+1),Ebath_CTEF_t(0:Nt+1)
+      real(8) :: Ecoup_CTEF(0:Nt+1),Ecoup_CTEF_l(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
+
 
       norm_CTEF_l = 0d0; Ekin_CTEF = 0d0
 
@@ -80,21 +82,31 @@ module CTEF_mod
           call set_initial_condition(zpsi_store,zHO_store, &
                                      zpsi_CTEF, zHO_CTEF, phi, norm)
 
-          call propagation(norm_CTEF_t,Ekin_CTEF_t)
+          call propagation(norm_CTEF_t,Ekin_CTEF_t, Ebath_CTEF_t, Ecoup_CTEF_t)
 !          if(myrank == 0)write(*,*)"norm",norm_CTEF_t(0),norm
           norm_CTEF_l = norm_CTEF_l + norm_CTEF_t*exp(-zI*phi)*norm*zweight
+          Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
+          Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
+          Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
+
 
         end do
         
       end do
 
       norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)
+      Ekin_CTEF_l = Ekin_CTEF_l/dble(Ntraj*Nphase)
+      Ebath_CTEF_l = Ebath_CTEF_l/dble(Ntraj*Nphase)
+      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(Ntraj*Nphase)
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(Ekin_CTEF_l,Ekin_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(Ebath_CTEF_l,Ebath_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(Ecoup_CTEF_l,Ecoup_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
       if(myrank == 0)then
         open(21,file="CTEF_norm.out")
         do it = 0,Nt+1
-          write(21,"(999e26.16e3)")dt*it,norm_CTEF(it)
+          write(21,"(999e26.16e3)")dt*it,norm_CTEF(it),Ekin_CTEF(it),Ebath_CTEF(it),Ecoup_CTEF(it)
         end do
         close(21)
       end if
@@ -108,11 +120,11 @@ module CTEF_mod
       real(8) :: x1,x2,p1,p2
 
 !! sub-system
-!      do i = 1,Lsite
-!        zpsi_out(i,:) = exp(zI*2d0*pi*(i-1)*dble(Lsite/2)/dble(Lsite))/sqrt(dble(Lsite))
-!      end do
-      zpsi_out = 0d0
-      zpsi_out(1,:) = 1d0
+      do i = 1,Lsite
+        zpsi_out(i,:) = exp(zI*2d0*pi*(i-1)*dble(Lsite/2)/dble(Lsite))/sqrt(dble(Lsite))
+      end do
+!      zpsi_out = 0d0
+!      zpsi_out(1,:) = 1d0
 
 !check
 !      p1 = 0d0
@@ -177,20 +189,29 @@ module CTEF_mod
 
     end subroutine set_initial_condition
 !-----------------------------------------------------------------------------------------
-    subroutine propagation(norm_CTEF_t,Ekin_CTEF_t)
+    subroutine propagation(norm_CTEF_t,Ekin_CTEF_t,Ebath_CTEF_t,Ecoup_CTEF_t)
       implicit none
       real(8),intent(out) :: norm_CTEF_t(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
+      real(8),intent(out) :: Ebath_CTEF_t(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
       integer :: it
 
       call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(0))
 
       zHO_dot_CTEF = 0d0
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+      Ekin_CTEF_t(0) = sum(zEs_CTEF*zSb_CTEF)
+      Ebath_CTEF_t(0) = sum(zEb_CTEF*zSs_CTEF)
+      Ecoup_CTEF_t(0) = sum(zEc_CTEF)
+
 
       do it = 0,Nt-1
 
         call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
+        Ekin_CTEF_t(it+1) = sum(zEs_CTEF*zSb_CTEF)
+        Ebath_CTEF_t(it+1) = sum(zEb_CTEF*zSs_CTEF)
+        Ecoup_CTEF_t(it+1) = sum(zEc_CTEF)
+
         
       end do
 
