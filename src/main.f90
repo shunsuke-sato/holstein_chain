@@ -5,6 +5,7 @@
 !---------------------------------------------------!
 program main
   use global_variables
+  use CTEF_mod
   implicit none
 
   call initialize_mpi
@@ -29,6 +30,8 @@ program main
   case('PTEF')
     call PTEF_allocation
     call PTEF_dynamics
+  case('CTEF')
+    call CTEF
   case('PBME')
     call PBME_allocation
     call PBME_dynamics
