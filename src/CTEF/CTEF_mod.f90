@@ -239,8 +239,7 @@ module CTEF_mod
 ! zX_HO
       do i = 1,2
         do j = 1,2
-          zX_HO_CTEF(:,i,j) = sqrt(1d0/(2d0*mass*omega0)) &
-            *(conjg(zHO_in(:,i)) + zHO_in(:,j)) &
+          zX_HO_CTEF(:,i,j) = (conjg(zHO_in(:,i)) + zHO_in(:,j)) &
             *zSb_CTEF(i,j)
         end do
       end do
@@ -266,7 +265,7 @@ module CTEF_mod
       zEc_CTEF(2,2) = sum( zX_HO_CTEF(:,2,2)*abs(zpsi_in(:,2))**2)
       zEc_CTEF(1,2) = sum( zX_HO_CTEF(:,1,2)*conjg(zpsi_in(:,1))*zpsi_in(:,2))
       zEc_CTEF(2,1) = conjg(zEc_CTEF(1,2))
-      zEc_CTEF = -gamma*sqrt(2d0*mass*omega0) * zEc_CTEF 
+      zEc_CTEF = -gamma* zEc_CTEF 
 
       do i = 1, Lsite
         zF_HO_CTEF(i,1) = abs(zpsi_in(i,1))**2 &
@@ -433,18 +432,16 @@ module CTEF_mod
       complex(8),intent(out) :: zhpsi_out(Lsite,2)
       complex(8) :: zhpsi_t(Lsite,2)
       complex(8) :: zhs_psi_t(Lsite,2)
-      real(8) :: c0
 
-      c0 = -gamma*sqrt(2d0*mass*omega0)
       call hs_zpsi(zpsi_in,zhs_psi_t)
 
       zhpsi_t(:,1) = zSb_CTEF(1,1)*zhs_psi_t(:,1) + zSb_CTEF(1,2)*zhs_psi_t(:,2)
       zhpsi_t(:,2) = zSb_CTEF(2,1)*zhs_psi_t(:,1) + zSb_CTEF(2,2)*zhs_psi_t(:,2)
 
       zhpsi_t(:,1) = zhpsi_t(:,1) &
-        +c0*zX_HO_CTEF(:,1,1)*zpsi_in(:,1) +c0*zX_HO_CTEF(:,1,2)*zpsi_in(:,2)
+        -gamma*zX_HO_CTEF(:,1,1)*zpsi_in(:,1) -gamma*zX_HO_CTEF(:,1,2)*zpsi_in(:,2)
       zhpsi_t(:,2) = zhpsi_t(:,2) &
-        +c0*zX_HO_CTEF(:,2,1)*zpsi_in(:,1) +c0*zX_HO_CTEF(:,2,2)*zpsi_in(:,2)
+        -gamma*zX_HO_CTEF(:,2,1)*zpsi_in(:,1) -gamma*zX_HO_CTEF(:,2,2)*zpsi_in(:,2)
 
       zhpsi_t(:,1) = zhpsi_t(:,1) &
         +zEb_CTEF(1,1)*zpsi_in(:,1) +zEb_CTEF(1,2)*zpsi_in(:,2)
