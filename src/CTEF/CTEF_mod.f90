@@ -59,7 +59,7 @@ module CTEF_mod
       complex(8) :: zpsi_store(Lsite,2),zHO_store(Lsite,2)
       complex(8) :: zweight
       real(8) :: norm, phi0,phi
-      integer :: itraj, iphase, it
+      integer :: itraj, iphase, it, i,j
       real(8) :: norm_CTEF(0:Nt+1),norm_CTEF_l(0:Nt+1),norm_CTEF_t(0:Nt+1)
       real(8) :: norm_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ekin_CTEF(0:Nt+1),Ekin_CTEF_l(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
@@ -68,6 +68,7 @@ module CTEF_mod
       real(8) :: Ebath_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ecoup_CTEF(0:Nt+1),Ecoup_CTEF_l(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
       real(8) :: Ecoup_CTEF_phase_ave(0:Nt+1)
+      complex(8) :: zrho_dm
 
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
@@ -77,6 +78,15 @@ module CTEF_mod
       do itraj = 1, Ntraj
 
         call init_forward_backward_trajectries(zpsi_store,zHO_store,zweight)
+! == localized init wf
+        zpsi_store = 0d0 
+        i = 1; j = mod(itraj,Lsite) + 1 
+        zpsi_store(1,1) = 1d0; zpsi_store(j,2) = 1d0 
+        zrho_dm = exp(zI*2d0*pi*(j-1)*dble(Lsite/2)/dble(Lsite))/dble(Lsite)*dble(Lsite**2)
+        zweight = zweight*zrho_dm
+! == localized init wf
+
+
         call random_number(phi0); phi0 = 2d0*pi*phi0
         if(myrank == 0 .and. mod(itraj,Ntraj/200)==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
@@ -136,7 +146,7 @@ module CTEF_mod
       integer :: i
       real(8) :: x1,x2,p1,p2
 
-!! sub-system
+!!! sub-system
       do i = 1,Lsite
         zpsi_out(i,:) = exp(zI*2d0*pi*(i-1)*dble(Lsite/2)/dble(Lsite))/sqrt(dble(Lsite))
       end do
