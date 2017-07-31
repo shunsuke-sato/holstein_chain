@@ -5,36 +5,34 @@
 !---------------------------------------------------!
 subroutine set_model_parameters
   use global_variables
+  use communication
   implicit none
 
-  Lsite = 12
-  t0 = 1d0
-  omega0 = 1d0
-  gamma = sqrt(0.4d0)
-  mass = 1d0
 
-  Tph = -1d0
+  if(myrank == 0)then
+    read(*,*)calc_mode
+    read(*,*)Lsite
+    read(*,*)t0
+    read(*,*)omega0
+    read(*,*)gamma
+    read(*,*)mass
+    read(*,*)Tph
+    read(*,*)Ntraj
+    read(*,*)dt
+  end if
 
-  Ntraj = 1000
+  call comm_bcast(calc_mode)
+  call comm_bcast(Lsite)
+  call comm_bcast(t0)
+  call comm_bcast(omega0)
+  call comm_bcast(gamma)
+  call comm_bcast(mass)
+  call comm_bcast(Tph)
+  call comm_bcast(Ntraj)
+  call comm_bcast(dt)
 
-  dt = 0.01d0 !0.01d0 !0.04d0
-!  Nt = aint(30d0/dt)+1
-!  Nt = aint(25d0/dt)+1
-!  Nt = aint(5d0/dt)+1
   Nt = aint(1d0/dt)+1
 
-!'MTEF', 'GQME_K'
-
-  calc_mode = 'CTEF'
-!  calc_mode = 'PTEF'
-!  calc_mode = 'GQME_K'
-!  calc_mode = 'GQME_T'
-!  calc_mode = 'PBME'; PBME_flag = 'modified' ! 'original', 'consisten', 'modified'
-!  x2_max = 5d0*dble(Lsite)
-! calc_mode = 'FBTS'; FBTS_flag = 'modified' ! 'original', 'consisten', 'modified'
-!  calc_mode = 'FBTS_K'
-
-!  call mean_population
 
 end subroutine set_model_parameters
 !==============================================

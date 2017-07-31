@@ -11,6 +11,7 @@ set(TARGET_NAME   "holstain-chain")
 
 set(SOURCES src/main.f90)
 file(GLOB BASIC_SRC src/basic/*.f90)
+file(GLOB MOD_SRC src/module/*.f90)
 file(GLOB PBME_SRC src/PBME/*.f90)
 file(GLOB FBTS_SRC src/FBTS/*.f90)
 file(GLOB PTEF_SRC src/PTEF/*.f90)
@@ -20,6 +21,7 @@ file(GLOB EXTERNAL_SRC src/external/*.f90)
 
 list(APPEND SOURCES 
             ${BASIC_SRC}
+            ${MOD_SRC}
             ${PBME_SRC}
             ${FBTS_SRC}
             ${PTEF_SRC}
