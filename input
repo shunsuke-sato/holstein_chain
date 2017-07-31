@@ -1,0 +1,9 @@
+'CTEF'            ! calc_mode
+12                ! Lsite
+1d0               ! t0
+1d0               ! omega0
+0.63245553203d0   ! gamma, sqrt(0.4) = 0.63245553203d0
+1d0               ! mass
+-1d0              ! Tph
+1000              ! Ntraj
+0.01d0            ! dt      
