@@ -66,7 +66,8 @@ module CTEF_mod
       real(8) :: Ecoup_CTEF(0:Nt+1),Ecoup_CTEF_l(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
 
 
-      norm_CTEF_l = 0d0; Ekin_CTEF = 0d0
+      norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
+      Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
 
 
       do itraj = 1, Ntraj
