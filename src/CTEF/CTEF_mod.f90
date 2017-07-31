@@ -61,9 +61,13 @@ module CTEF_mod
       real(8) :: norm, phi0,phi
       integer :: itraj, iphase, it
       real(8) :: norm_CTEF(0:Nt+1),norm_CTEF_l(0:Nt+1),norm_CTEF_t(0:Nt+1)
+      real(8) :: norm_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ekin_CTEF(0:Nt+1),Ekin_CTEF_l(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
+      real(8) :: Ekin_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ebath_CTEF(0:Nt+1),Ebath_CTEF_l(0:Nt+1),Ebath_CTEF_t(0:Nt+1)
+      real(8) :: Ebath_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ecoup_CTEF(0:Nt+1),Ecoup_CTEF_l(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
+      real(8) :: Ecoup_CTEF_phase_ave(0:Nt+1)
 
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
@@ -74,10 +78,14 @@ module CTEF_mod
 
         call init_forward_backward_trajectries(zpsi_store,zHO_store,zweight)
         call random_number(phi0); phi0 = 2d0*pi*phi0
+        if(myrank == 0 .and. mod(itraj,Ntraj/200)==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
-        if(myrank == 0)write(*,*)"itraj=",itraj,"/",Ntraj
 !        write(*,*)"itraj=",itraj,"/",Ntraj
-
+        
+        norm_CTEF_phase_ave = 0d0
+        Ekin_CTEF_phase_ave = 0d0
+        Ebath_CTEF_phase_ave = 0d0
+        Ecoup_CTEF_phase_ave = 0d0
         do iphase = 1,Nphase
           phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
           call set_initial_condition(zpsi_store,zHO_store, &
@@ -85,13 +93,21 @@ module CTEF_mod
 
           call propagation(norm_CTEF_t,Ekin_CTEF_t, Ebath_CTEF_t, Ecoup_CTEF_t)
 !          if(myrank == 0)write(*,*)"norm",norm_CTEF_t(0),norm
-          norm_CTEF_l = norm_CTEF_l + norm_CTEF_t*exp(-zI*phi)*norm*zweight
-          Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
-          Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
-          Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
+          norm_CTEF_phase_ave = norm_CTEF_phase_ave &
+            + norm_CTEF_t*exp(-zI*phi)*norm*zweight
+          Ekin_CTEF_phase_ave = Ekin_CTEF_phase_ave &
+            + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
+          Ebath_CTEF_phase_ave = Ebath_CTEF_phase_ave &
+            + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
+          Ecoup_CTEF_phase_ave = Ecoup_CTEF_phase_ave &
+            + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
 
 
         end do
+        norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
+        Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
+        Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
+        Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
         
       end do
 
