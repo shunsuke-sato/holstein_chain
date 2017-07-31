@@ -6,4 +6,5 @@
 1d0               ! mass
 -1d0              ! Tph
 1000              ! Ntraj
+5d0               ! Tprop
 0.01d0            ! dt      

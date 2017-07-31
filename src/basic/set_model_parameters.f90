@@ -18,6 +18,7 @@ subroutine set_model_parameters
     read(*,*)mass
     read(*,*)Tph
     read(*,*)Ntraj
+    read(*,*)Tprop
     read(*,*)dt
   end if
 
@@ -29,9 +30,10 @@ subroutine set_model_parameters
   call comm_bcast(mass)
   call comm_bcast(Tph)
   call comm_bcast(Ntraj)
+  call comm_bcast(Tprop)
   call comm_bcast(dt)
 
-  Nt = aint(1d0/dt)+1
+  Nt = aint(Tprop/dt)+1
 
 
 end subroutine set_model_parameters
