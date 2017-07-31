@@ -4,6 +4,8 @@
 ! https://opensource.org/licenses/mit-license.php   !
 !---------------------------------------------------!
 module global_variables
+  use mpi
+  use parallel
   implicit none
 
 ! Mathematical parameters
@@ -51,8 +53,8 @@ module global_variables
   real(8),allocatable :: x_n(:),p_n(:)
 
 
-! MPI
-  include 'mpif.h'
+!! MPI
+!  include 'mpif.h'
   integer :: Myrank,Nprocs,ierr
 
 ! I/O

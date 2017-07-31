@@ -5,10 +5,12 @@
 !---------------------------------------------------!
 subroutine initialize_mpi
   use global_variables
+  use parallel
   implicit none
 
-  call MPI_init(ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,Nprocs,ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,Myrank,ierr)
+  call init_parallel
+
+  Nprocs = comm_nproc_global
+  Myrank = comm_id_global
 
 end subroutine initialize_mpi
