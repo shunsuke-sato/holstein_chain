@@ -19,6 +19,9 @@ program main
   case('MTEF')
     call allocation_of_global_arrays
     call multi_traject_Ehrenfest
+  case('MTEF_PAV')
+    call allocation_of_global_arrays
+    call multi_traject_Ehrenfest_phase_average
   case('GQME_K')
     call allocation_of_global_arrays
     call GQME_kernel
