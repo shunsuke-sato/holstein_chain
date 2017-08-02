@@ -164,17 +164,15 @@ module CTEF_mod
 
 !! bath-system
       do i = 1,Lsite
-        call correlated_gaussian_random_number(x1,x2)
-        call correlated_gaussian_random_number(p1,p2)
-        zHO_out(i,1) = x1 + zI * p1
-        zHO_out(i,2) = x2 + zI * p2
+        call gaussian_random_number(x1,p1)
+        call gaussian_random_number(x2,p2)
+        zHO_out(i,1) = (x1 + zI * p1)*sqrt(2d0/3d0)
+        zHO_out(i,2) = (x2 + zI * p2)*sqrt(0.5d0) + 0.5d0*zHO_out(i,1) 
       end do
 
       zweight = 1d0
       do i = 1, Lsite
-        zweight = zweight * (2d0*pi/sqrt(3d0)/pi)**2*exp( &
-          -0.5d0*abs(zHO_out(i,1))**2 -0.5d0*abs(zHO_out(i,2))**2 &
-          +0.5d0*abs(zHO_out(i,1))**2 +0.5d0*abs(zHO_out(i,2))**2 &
+        zweight = zweight * (4d0/3d0)*exp( &
           +0.5d0*abs(zHO_out(i,1)-zHO_out(i,2))**2 &
           )
       end do
