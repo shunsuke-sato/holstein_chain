@@ -1,0 +1,10 @@
+set(SOURCES
+CTEF_mod.f90
+)
+
+add_library(${CTEF_LIB} STATIC ${SOURCES})
+add_dependencies(${CTEF_LIB} ${BASIC_LIB} ${MOD_LIB})
+list(APPEND LIBRARIES ${CTEF_LIB})
+set(LIBRARIES ${LIBRARIES} PARENT_SCOPE)
+
+
