@@ -71,6 +71,8 @@ module CTEF_mod
       real(8) :: Ecoup_CTEF_phase_ave(0:Nt+1)
       complex(8) :: zrho_dm
       real(8) :: x1,x2,p1,p2
+      integer,parameter :: ran_len = 1
+      real(8) :: rvec(ran_len)
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
       Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
@@ -94,8 +96,8 @@ module CTEF_mod
         zrho_dm = exp(zI*2d0*pi*(j-1)*dble(Lsite/2)/dble(Lsite))/dble(Lsite)*dble(Lsite**2)
 ! == localized init wf
 
-
-        call random_number(phi0); phi0 = 2d0*pi*phi0
+        CALL ranlux_double (rvec, ran_len)
+        phi0 = rvec(1); phi0 = 2d0*pi*phi0
         if(myrank == 0 .and. mod(itraj,Ntraj/200)==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
 !        write(*,*)"itraj=",itraj,"/",Ntraj
