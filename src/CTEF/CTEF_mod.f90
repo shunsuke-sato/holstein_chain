@@ -97,12 +97,30 @@ module CTEF_mod
         if(mod(itraj,Nprocs) /= myrank)cycle
 !        write(*,*)"itraj=",itraj,"/",Ntraj
         
-        do i_antithetic = 1,2
-          do j_antithetic = 1,2
+        do i_antithetic = 1,4
+          do j_antithetic = 1,4
 
-            zHO_store(:,1) = (-1d0)**i_antithetic*zHO_gauss_store(:,1)
-            zHO_store(:,2) = (-1d0)**j_antithetic*zHO_gauss_store(:,2) &
-              +0.5d0*zHO_store(:,1)
+            select case(i_antithetic)
+            case(1)
+              zHO_store(:,1) = zHO_gauss_store(:,1)
+            case(2)
+              zHO_store(:,1) = -zHO_gauss_store(:,1)
+            case(3)
+              zHO_store(:,1) = conjg(zHO_gauss_store(:,1))
+            case(4)
+              zHO_store(:,1) = -conjg(zHO_gauss_store(:,1))
+            end select
+
+            select case(j_antithetic)
+            case(1)
+              zHO_store(:,2) = zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
+            case(2)
+              zHO_store(:,2) = -zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
+            case(3)
+              zHO_store(:,2) = conjg(zHO_gauss_store(:,2))+0.5d0*zHO_store(:,1)
+            case(4)
+              zHO_store(:,2) = -conjg(zHO_gauss_store(:,2))+0.5d0*zHO_store(:,1)
+            end select
 
             call calc_zweight(zHO_store,zweight0)
 
@@ -150,10 +168,10 @@ module CTEF_mod
         
       end do
 
-      norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)/4d0
-      Ekin_CTEF_l = Ekin_CTEF_l/dble(Ntraj*Nphase)/4d0
-      Ebath_CTEF_l = Ebath_CTEF_l/dble(Ntraj*Nphase)/4d0
-      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(Ntraj*Nphase)/4d0
+      norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)/16d0
+      Ekin_CTEF_l = Ekin_CTEF_l/dble(Ntraj*Nphase)/16d0
+      Ebath_CTEF_l = Ebath_CTEF_l/dble(Ntraj*Nphase)/16d0
+      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(Ntraj*Nphase)/16d0
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ekin_CTEF_l,Ekin_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ebath_CTEF_l,Ebath_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
