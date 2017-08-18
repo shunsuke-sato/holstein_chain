@@ -56,10 +56,11 @@ module CTEF_mod
 !-----------------------------------------------------------------------------------------
     subroutine CTEF_dynamics
       implicit none
-      complex(8) :: zpsi_store(Lsite,2),zHO_store(Lsite,2)
+      complex(8) :: zpsi_store(Lsite,2),zHO_store(Lsite,2),zHO_gauss_store(Lsite,2)
       complex(8) :: zweight
       real(8) :: norm, phi0,phi
       integer :: itraj, iphase, it, i,j
+      integer :: i_antithetic, j_antithetic
       real(8) :: norm_CTEF(0:Nt+1),norm_CTEF_l(0:Nt+1),norm_CTEF_t(0:Nt+1)
       real(8) :: norm_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ekin_CTEF(0:Nt+1),Ekin_CTEF_l(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
@@ -69,7 +70,9 @@ module CTEF_mod
       real(8) :: Ecoup_CTEF(0:Nt+1),Ecoup_CTEF_l(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
       real(8) :: Ecoup_CTEF_phase_ave(0:Nt+1)
       complex(8) :: zrho_dm
-
+      real(8) :: x1,x2,p1,p2
+      integer,parameter :: ran_len = 1
+      real(8) :: rvec(ran_len)
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
       Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
@@ -77,54 +80,74 @@ module CTEF_mod
 
       do itraj = 1, Ntraj
 
-        call init_forward_backward_trajectries(zpsi_store,zHO_store,zweight)
+! == bath distribution
+        do i = 1,Lsite
+          call gaussian_random_number(x1,p1)
+          call gaussian_random_number(x2,p2)
+          zHO_gauss_store(i,1) = (x1 + zI * p1)*sqrt(2d0/3d0)
+          zHO_gauss_store(i,2) = (x2 + zI * p2)*sqrt(0.5d0)
+        end do
+! == bath distribution
+
 ! == localized init wf
         zpsi_store = 0d0 
         i = 1; j = mod(itraj,Lsite) + 1 
         zpsi_store(1,1) = 1d0; zpsi_store(j,2) = 1d0 
         zrho_dm = exp(zI*2d0*pi*(j-1)*dble(Lsite/2)/dble(Lsite))/dble(Lsite)*dble(Lsite**2)
-        zweight = zweight*zrho_dm
 ! == localized init wf
 
-
-        call random_number(phi0); phi0 = 2d0*pi*phi0
+        CALL ranlux_double (rvec, ran_len)
+        phi0 = rvec(1); phi0 = 2d0*pi*phi0
         if(myrank == 0 .and. mod(itraj,Ntraj/200)==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
 !        write(*,*)"itraj=",itraj,"/",Ntraj
         
-        norm_CTEF_phase_ave = 0d0
-        Ekin_CTEF_phase_ave = 0d0
-        Ebath_CTEF_phase_ave = 0d0
-        Ecoup_CTEF_phase_ave = 0d0
-        do iphase = 1,Nphase
-          phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
-          call set_initial_condition(zpsi_store,zHO_store, &
-                                     zpsi_CTEF, zHO_CTEF, phi, norm)
+        do i_antithetic = 1,2
+          do j_antithetic = 1,2
 
-          call propagation(norm_CTEF_t,Ekin_CTEF_t, Ebath_CTEF_t, Ecoup_CTEF_t)
-!          if(myrank == 0)write(*,*)"norm",norm_CTEF_t(0),norm
-          norm_CTEF_phase_ave = norm_CTEF_phase_ave &
-            + norm_CTEF_t*exp(-zI*phi)*norm*zweight
-          Ekin_CTEF_phase_ave = Ekin_CTEF_phase_ave &
-            + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
-          Ebath_CTEF_phase_ave = Ebath_CTEF_phase_ave &
-            + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
-          Ecoup_CTEF_phase_ave = Ecoup_CTEF_phase_ave &
-            + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
+            zHO_store(:,1) = (-1d0)**i_antithetic*zHO_gauss_store(:,1)
+            zHO_store(:,2) = (-1d0)**j_antithetic*zHO_gauss_store(:,2) &
+              +0.5d0*zHO_store(:,1)
+
+            call calc_zweight(zHO_store,zweight)
+            zweight = zweight * zrho_dm
+
+            norm_CTEF_phase_ave = 0d0
+            Ekin_CTEF_phase_ave = 0d0
+            Ebath_CTEF_phase_ave = 0d0
+            Ecoup_CTEF_phase_ave = 0d0
+            do iphase = 1,Nphase
+              phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
+              call set_initial_condition(zpsi_store,zHO_store, &
+                zpsi_CTEF, zHO_CTEF, phi, norm)
+              
+              call propagation(norm_CTEF_t,Ekin_CTEF_t, Ebath_CTEF_t, Ecoup_CTEF_t)
+              !          if(myrank == 0)write(*,*)"norm",norm_CTEF_t(0),norm
+              norm_CTEF_phase_ave = norm_CTEF_phase_ave &
+                + norm_CTEF_t*exp(-zI*phi)*norm*zweight
+              Ekin_CTEF_phase_ave = Ekin_CTEF_phase_ave &
+                + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
+              Ebath_CTEF_phase_ave = Ebath_CTEF_phase_ave &
+                + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
+              Ecoup_CTEF_phase_ave = Ecoup_CTEF_phase_ave &
+                + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
 
 
+            end do
+            norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
+            Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
+            Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
+            Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
+
+          end do
         end do
-        norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
-        Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
-        Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
-        Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
         
       end do
 
-      norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)
-      Ekin_CTEF_l = Ekin_CTEF_l/dble(Ntraj*Nphase)
-      Ebath_CTEF_l = Ebath_CTEF_l/dble(Ntraj*Nphase)
-      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(Ntraj*Nphase)
+      norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)/4d0
+      Ekin_CTEF_l = Ekin_CTEF_l/dble(Ntraj*Nphase)/4d0
+      Ebath_CTEF_l = Ebath_CTEF_l/dble(Ntraj*Nphase)/4d0
+      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(Ntraj*Nphase)/4d0
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ekin_CTEF_l,Ekin_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ebath_CTEF_l,Ebath_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -140,63 +163,20 @@ module CTEF_mod
 
     end subroutine CTEF_dynamics
 !-----------------------------------------------------------------------------------------
-    subroutine init_forward_backward_trajectries(zpsi_out,zHO_out,zweight)
+    subroutine calc_zweight(zHO_in,zweight)
       implicit none
-      complex(8),intent(out) :: zpsi_out(Lsite,2), zHO_out(Lsite,2),zweight
+      complex(8),intent(in) :: zHO_in(Lsite,2)
+      complex(8),intent(out) :: zweight
       integer :: i
-      real(8) :: x1,x2,p1,p2
-
-!!! sub-system
-      do i = 1,Lsite
-        zpsi_out(i,:) = exp(zI*2d0*pi*(i-1)*dble(Lsite/2)/dble(Lsite))/sqrt(dble(Lsite))
-      end do
-!      zpsi_out = 0d0
-!      zpsi_out(1,:) = 1d0
-
-!check
-!      p1 = 0d0
-!      do i = 1,10000
-!        call correlated_gaussian_random_number(x1,x2)
-!        p1 = p1 + exp(-x1**2-x2**2)*exp(+0.5d0*x1**2+0.5d0*x2**2+0.5d0*(x1-x2)**2)*(2d0*pi/sqrt(3d0))/pi
-!      end do
-!      write(*,*)"p1=",p1/10000d0
-!      stop
-
-!! bath-system
-      do i = 1,Lsite
-        call correlated_gaussian_random_number(x1,x2)
-        call correlated_gaussian_random_number(p1,p2)
-        zHO_out(i,1) = x1 + zI * p1
-        zHO_out(i,2) = x2 + zI * p2
-      end do
 
       zweight = 1d0
       do i = 1, Lsite
-        zweight = zweight * (2d0*pi/sqrt(3d0)/pi)**2*exp( &
-          -0.5d0*abs(zHO_out(i,1))**2 -0.5d0*abs(zHO_out(i,2))**2 &
-          +0.5d0*abs(zHO_out(i,1))**2 +0.5d0*abs(zHO_out(i,2))**2 &
-          +0.5d0*abs(zHO_out(i,1)-zHO_out(i,2))**2 &
+        zweight = zweight * (4d0/3d0)*exp( &
+          +0.5d0*abs(zHO_in(i,1) - zHO_in(i,2))**2 &
           )
       end do
 
-!!! bath-system
-!      do i = 1,Lsite
-!        call gaussian_random_number(x1,p1)
-!        call gaussian_random_number(x2,p2)
-!        zHO_out(i,1) = x1 + zI * p1
-!        zHO_out(i,2) = x2 + zI * p2
-!      end do
-!      zHO_out = zHO_out *sqrt(0.5d0)
-!
-!      zweight = 1d0
-!      do i = 1, Lsite
-!        zweight = zweight * (2d0/2d0)**2*exp( &
-!          -0.5d0*abs(zHO_out(i,1))**2 -0.5d0*abs(zHO_out(i,2))**2 &
-!          +1.0d0*abs(zHO_out(i,1))**2 +1.0d0*abs(zHO_out(i,2))**2 &
-!          )
-!      end do
-
-    end subroutine init_forward_backward_trajectries
+    end subroutine calc_zweight
 !-----------------------------------------------------------------------------------------
     subroutine set_initial_condition(zpsi_in,zHO_in,zpsi_out,zHO_out,phi,norm)
       implicit none
