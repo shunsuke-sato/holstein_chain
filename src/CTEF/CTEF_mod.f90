@@ -391,15 +391,15 @@ module CTEF_mod
 
 ! t -> t + dt/2
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
-!      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
+!      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
       zpsi_t = zpsi_inout
       zHO_t = zHO_inout
 
 
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
-!      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
+!      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       do iscf = 1, Nscf_pred_corr
         call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
@@ -407,8 +407,8 @@ module CTEF_mod
         zpsi_inout = zpsi_t
 
         call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-        call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
-!        call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
+!        call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+        call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       end do
 
