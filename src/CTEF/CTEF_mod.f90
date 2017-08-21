@@ -474,6 +474,55 @@ module CTEF_mod
 
     end subroutine dt_evolve_bath_taylor
 !-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath_diag(zHO_inout,dt_t)
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      complex(8) :: zlambda(2), zeig_vec(2,2), zeig_vec_inv(2,2)
+      complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
+      complex(8) :: zs
+      real(8) :: ss
+
+      zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
+      zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
+
+      if(abs(zHb_eff_CTEF(1,2)) == 0d0 .and. abs(zHb_eff_CTEF(2,1)) == 0d0)then
+        zlambda(1) = zHb_eff_CTEF(1,1)
+        zlambda(2) = zHb_eff_CTEF(2,2)
+        zeig_vec(1:2,1) = (/1d0, 0d0/)
+        zeig_vec(1:2,2) = (/0d0, 1d0/)
+      else 
+
+        zs = (zHb_eff_CTEF(1,1) - zHb_eff_CTEF(2,2))**2 &
+          + 4d0*zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)
+        zlambda(1) = 0.5d0*( zHb_eff_CTEF(1,1) + zHb_eff_CTEF(2,2) + sqrt(zs) )
+        zlambda(2) = 0.5d0*( zHb_eff_CTEF(1,1) + zHb_eff_CTEF(2,2) - sqrt(zs) )
+
+        if( abs(zHb_eff_CTEF(1,2)) > abs(zHb_eff_CTEF(2,1)) )then
+          zeig_vec(1,1) = 1d0
+          zeig_vec(1,2) = 1d0
+          zeig_vec(2,1) = (zlambda(1) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
+          zeig_vec(2,2) = (zlambda(2) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
+        else
+          zeig_vec(2,1) = 1d0
+          zeig_vec(2,2) = 1d0
+          zeig_vec(1,1) = (zlambda(1) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
+          zeig_vec(1,2) = (zlambda(2) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
+        end if
+
+      end if
+
+      call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
+      
+!      zHO_inout == > zHO_inout
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
+
+    end subroutine dt_evolve_bath_taylor
+!-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
       complex(8),intent(in) :: zpsi_in(Lsite,2)
