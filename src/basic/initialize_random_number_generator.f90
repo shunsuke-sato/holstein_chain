@@ -13,7 +13,8 @@ subroutine initialize_random_number_generator
 
 !  INT_ran = myrank**2 + 1000*myrank + 1
 !  INT_ran = myrank**2 + 1000*myrank + 10001
-  INT_ran = 19900126
+!  INT_ran = 19900126 + 1234567
+  INT_ran = 1234567
   CALL RLUXGO(lux_ran,int_ran,K1_ran,K2_ran)
 
 
