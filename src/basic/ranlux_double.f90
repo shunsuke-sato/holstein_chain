@@ -17,8 +17,8 @@ subroutine ranlux_double(rvec,len)
 
     CALL RANLUX (rvec4, len4)
 
-    int1 = aint(rvec4(1)*1d7)*10000000 + aint(rvec4(2)*1d7)
-    rvec(i) =dble(int1)*1d-14
+    int1 = aint(rvec4(1)*1d6)*10000000 + aint(rvec4(2)*1d7)
+    rvec(i) =dble(int1)*1d-13
 
   end do
 
