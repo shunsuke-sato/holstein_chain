@@ -21,6 +21,12 @@ module CTEF_mod
   complex(8) :: zHb_eff_CTEF(2,2), zSsb_CTEF(2,2), zSsb_inv_CTEF(2,2)
   complex(8),allocatable :: zX_HO_CTEF(:,:,:), zF_HO_CTEF(:,:)
 
+
+  integer,parameter :: bath_propagator_direct = 0
+  integer,parameter :: bath_propagator_taylor = 1
+  integer,parameter :: bath_propagator_diagonalization = 2
+  integer,parameter :: iflag_bath_propagator = bath_propagator_diagonalization
+
   public :: CTEF
 
   contains
@@ -434,6 +440,24 @@ module CTEF_mod
 
     end subroutine dt_evolve_elec
 !-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath(zHO_inout,zHO_dot_in,dt_t)
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      complex(8),intent(in) :: zHO_dot_in(Lsite,2)
+
+      select case(iflag_bath_propagator)
+      case(bath_propagator_direct)
+        call dt_evolve_bath_direct(zHO_inout,zHO_dot_in,dt_t)
+      case(bath_propagator_taylor)
+        call dt_evolve_bath_taylor(zHO_inout,dt_t)
+      case(bath_propagator_diagonalization)
+        call dt_evolve_bath_diag(zHO_inout,dt_t)
+      case default
+        stop 'wrong bath propagator'
+      end select
+
+    end subroutine dt_evolve_bath
+!-----------------------------------------------------------------------------------------
     subroutine dt_evolve_bath_direct(zHO_inout,zHO_dot_in,dt_t)
       implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
@@ -479,6 +503,7 @@ module CTEF_mod
       real(8),intent(in) :: dt_t
       complex(8) :: zlambda(2), zeig_vec(2,2), zeig_vec_inv(2,2)
       complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
+      complex(8) :: zvec_t(Lsite,2)
       complex(8) :: zs
       real(8) :: ss
 
@@ -518,10 +543,17 @@ module CTEF_mod
       call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
       
 !      zHO_inout == > zHO_inout
+      zvec_t(:,1) = zeig_vec_inv(1,1)*zHO_inout(:,1) + zeig_vec_inv(1,2)*zHO_inout(:,2)
+      zvec_t(:,2) = zeig_vec_inv(2,1)*zHO_inout(:,1) + zeig_vec_inv(2,2)*zHO_inout(:,2)
+      zvec_t(:,1) = exp(-zI*dt*zlambda(1))*zvec_t(:,1) 
+      zvec_t(:,2) = exp(-zI*dt*zlambda(2))*zvec_t(:,2) 
+
+      zHO_inout(:,1) = zeig_vec(1,1)*zvec_t(:,1) + zeig_vec(1,2)*zvec_t(:,2)
+      zHO_inout(:,2) = zeig_vec(2,1)*zvec_t(:,1) + zeig_vec(2,2)*zvec_t(:,2)
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
-    end subroutine dt_evolve_bath_taylor
+    end subroutine dt_evolve_bath_diag
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
