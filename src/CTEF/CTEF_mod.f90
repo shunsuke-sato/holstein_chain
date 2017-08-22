@@ -545,8 +545,8 @@ module CTEF_mod
 !      zHO_inout == > zHO_inout
       zvec_t(:,1) = zeig_vec_inv(1,1)*zHO_inout(:,1) + zeig_vec_inv(1,2)*zHO_inout(:,2)
       zvec_t(:,2) = zeig_vec_inv(2,1)*zHO_inout(:,1) + zeig_vec_inv(2,2)*zHO_inout(:,2)
-      zvec_t(:,1) = exp(-zI*dt*zlambda(1))*zvec_t(:,1) 
-      zvec_t(:,2) = exp(-zI*dt*zlambda(2))*zvec_t(:,2) 
+      zvec_t(:,1) = exp(-zI*dt_t*zlambda(1))*zvec_t(:,1) 
+      zvec_t(:,2) = exp(-zI*dt_t*zlambda(2))*zvec_t(:,2) 
 
       zHO_inout(:,1) = zeig_vec(1,1)*zvec_t(:,1) + zeig_vec(1,2)*zvec_t(:,2)
       zHO_inout(:,2) = zeig_vec(2,1)*zvec_t(:,1) + zeig_vec(2,2)*zvec_t(:,2)
