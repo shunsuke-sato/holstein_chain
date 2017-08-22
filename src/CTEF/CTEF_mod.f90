@@ -397,15 +397,15 @@ module CTEF_mod
 
 ! t -> t + dt/2
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-!      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
-      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
+      call dt_evolve_bath(zHO_inout,zHO_dot_inout,dt*0.5d0)
+!      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
       zpsi_t = zpsi_inout
       zHO_t = zHO_inout
 
 
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-!      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
-      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
+      call dt_evolve_bath(zHO_inout,zHO_dot_inout,dt*0.5d0)
+!      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       do iscf = 1, Nscf_pred_corr
         call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
@@ -413,8 +413,8 @@ module CTEF_mod
         zpsi_inout = zpsi_t
 
         call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-!        call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
-        call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
+        call dt_evolve_bath(zHO_inout,zHO_dot_inout,dt*0.5d0)
+!        call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       end do
 
@@ -441,6 +441,7 @@ module CTEF_mod
     end subroutine dt_evolve_elec
 !-----------------------------------------------------------------------------------------
     subroutine dt_evolve_bath(zHO_inout,zHO_dot_in,dt_t)
+      implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
       complex(8),intent(in) :: zHO_dot_in(Lsite,2)
@@ -469,6 +470,7 @@ module CTEF_mod
     end subroutine dt_evolve_bath_direct
 !-----------------------------------------------------------------------------------------
     subroutine dt_evolve_bath_taylor(zHO_inout,dt_t)
+      implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
       integer,parameter :: Nexp_Taylor = 6
@@ -499,6 +501,7 @@ module CTEF_mod
     end subroutine dt_evolve_bath_taylor
 !-----------------------------------------------------------------------------------------
     subroutine dt_evolve_bath_diag(zHO_inout,dt_t)
+      implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
       complex(8) :: zlambda(2), zeig_vec(2,2), zeig_vec_inv(2,2)
