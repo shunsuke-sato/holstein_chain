@@ -99,7 +99,7 @@ module CTEF_mod
 
         CALL ranlux_double (rvec, ran_len)
         phi0 = rvec(1); phi0 = 2d0*pi*phi0
-        if(myrank == 0 .and. mod(itraj,Ntraj/200)==0)write(*,*)"itraj=",itraj,"/",Ntraj
+        if(myrank == 0 .and. mod(itraj,max(Ntraj/200,1))==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
 !        write(*,*)"itraj=",itraj,"/",Ntraj
         
@@ -517,7 +517,7 @@ module CTEF_mod
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
-      if(abs(zHb_eff_CTEF(1,2)) == 0d0 .and. abs(zHb_eff_CTEF(2,1)) == 0d0)then
+      if(abs(zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)) == 0d0)then
         zlambda(1) = zHb_eff_CTEF(1,1)
         zlambda(2) = zHb_eff_CTEF(2,2)
         zeig_vec(1:2,1) = (/1d0, 0d0/)
@@ -529,20 +529,23 @@ module CTEF_mod
         zlambda(1) = 0.5d0*( zHb_eff_CTEF(1,1) + zHb_eff_CTEF(2,2) + sqrt(zs) )
         zlambda(2) = 0.5d0*( zHb_eff_CTEF(1,1) + zHb_eff_CTEF(2,2) - sqrt(zs) )
 
-        if( abs(zHb_eff_CTEF(1,2)) > abs(zHb_eff_CTEF(2,1)) )then
+        if( abs(zHb_eff_CTEF(1,1) -zlambda(1)) < abs(zHb_eff_CTEF(2,2) -zlambda(1)) )then
           zeig_vec(1,1) = 1d0
-          zeig_vec(1,2) = 1d0
           zeig_vec(2,1) = (zlambda(1) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
-          zeig_vec(2,2) = (zlambda(2) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
-        else
-          zeig_vec(2,1) = 1d0
           zeig_vec(2,2) = 1d0
-          zeig_vec(1,1) = (zlambda(1) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
           zeig_vec(1,2) = (zlambda(2) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
+        else
+          zeig_vec(1,2) = 1d0
+          zeig_vec(2,2) = (zlambda(2) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
+          zeig_vec(2,1) = 1d0
+          zeig_vec(1,1) = (zlambda(1) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
         end if
+
 
       end if
 
+      zeig_vec_inv = matmul(zHb_eff_CTEF,zeig_vec)
+      write(*,*)"error=",sum(abs(zeig_vec_inv(:,1)-zlambda(1)*zeig_vec(:,1)) + abs(zeig_vec_inv(:,2)-zlambda(2)*zeig_vec(:,2)) )
       call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
       
 !      zHO_inout == > zHO_inout
