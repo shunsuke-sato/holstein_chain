@@ -504,9 +504,10 @@ module CTEF_mod
       implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
+      real(8),parameter :: epsilon = 1d-4
       complex(8) :: zlambda(2), zeig_vec(2,2), zeig_vec_inv(2,2)
       complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
-      complex(8) :: zvec_t(Lsite,2)
+      complex(8) :: zvec_t(Lsite,2),zexp_Hmat(2,2),zmat(2,2)
       complex(8) :: zs
       real(8) :: ss
 
@@ -517,12 +518,8 @@ module CTEF_mod
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
-      if(abs(zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)) == 0d0)then
-        zlambda(1) = zHb_eff_CTEF(1,1)
-        zlambda(2) = zHb_eff_CTEF(2,2)
-        zeig_vec(1:2,1) = (/1d0, 0d0/)
-        zeig_vec(1:2,2) = (/0d0, 1d0/)
-      else 
+      if(abs(zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)) > epsilon &
+        .and. sum(abs(zlambda(:))) > epsilon)then
 
         zs = (zHb_eff_CTEF(1,1) - zHb_eff_CTEF(2,2))**2 &
           + 4d0*zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)
@@ -541,21 +538,34 @@ module CTEF_mod
           zeig_vec(1,1) = (zlambda(1) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
         end if
 
+        call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
+        zexp_Hmat(1,1) = exp(-zI*dt_t*zlambda(1))
+        zexp_Hmat(2,1) = 0d0
+        zexp_Hmat(1,2) = 0d0
+        zexp_Hmat(2,2) = exp(-zI*dt_t*zlambda(2))
+        zmat = matmul(zexp_Hmat,zeig_vec_inv)
+        zexp_Hmat = matmul(zeig_vec,zmat)
+
+      else
+        zmat(1,1) = 0d0; zmat(2,1) = zHb_eff_CTEF(2,1)
+        zmat(1,2) = zHb_eff_CTEF(1,2); zmat(2,2) = 0d0
+        zexp_Hmat(1,1) = 1d0
+        zexp_Hmat(2,1) = 0d0
+        zexp_Hmat(1,2) = 0d0
+        zexp_Hmat(2,2) = 1d0
+        zexp_Hmat = zexp_Hmat - zI*dt_t*zmat +0.5d0*(-zI*dt_t)**2*matmul(zmat,zmat)
+        zmat(1,1) = exp(-zI*0.5d0*dt_t*zHb_eff_CTEF(1,1)); zmat(2,1) = 0d0
+        zmat(1,2) = 0d0; zmat(2,2) = exp(-zI*0.5d0*dt_t*zHb_eff_CTEF(2,2))
+        zexp_Hmat = matmul(zexp_Hmat,zmat)
+        zexp_Hmat = matmul(zmat,zexp_Hmat)
 
       end if
 
-      zeig_vec_inv = matmul(zHb_eff_CTEF,zeig_vec)
-      write(*,*)"error=",sum(abs(zeig_vec_inv(:,1)-zlambda(1)*zeig_vec(:,1)) + abs(zeig_vec_inv(:,2)-zlambda(2)*zeig_vec(:,2)) )
-      call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
       
-!      zHO_inout == > zHO_inout
-      zvec_t(:,1) = zeig_vec_inv(1,1)*zHO_inout(:,1) + zeig_vec_inv(1,2)*zHO_inout(:,2)
-      zvec_t(:,2) = zeig_vec_inv(2,1)*zHO_inout(:,1) + zeig_vec_inv(2,2)*zHO_inout(:,2)
-      zvec_t(:,1) = exp(-zI*dt_t*zlambda(1))*zvec_t(:,1) 
-      zvec_t(:,2) = exp(-zI*dt_t*zlambda(2))*zvec_t(:,2) 
+      zvec_t = zHO_inout
 
-      zHO_inout(:,1) = zeig_vec(1,1)*zvec_t(:,1) + zeig_vec(1,2)*zvec_t(:,2)
-      zHO_inout(:,2) = zeig_vec(2,1)*zvec_t(:,1) + zeig_vec(2,2)*zvec_t(:,2)
+      zHO_inout(:,1) = zexp_Hmat(1,1)*zvec_t(:,1) + zexp_Hmat(1,2)*zvec_t(:,2)
+      zHO_inout(:,2) = zexp_Hmat(2,1)*zvec_t(:,1) + zexp_Hmat(2,2)*zvec_t(:,2)
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
