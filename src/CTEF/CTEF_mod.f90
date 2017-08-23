@@ -24,8 +24,8 @@ module CTEF_mod
 
   integer,parameter :: bath_propagator_direct = 0
   integer,parameter :: bath_propagator_taylor = 1
-  integer,parameter :: bath_propagator_diagonalization = 2
-  integer,parameter :: iflag_bath_propagator = bath_propagator_diagonalization
+  integer,parameter :: bath_propagator_taylor_mod = 2
+  integer,parameter :: iflag_bath_propagator = bath_propagator_taylor_mod
 
   public :: CTEF
 
@@ -451,8 +451,8 @@ module CTEF_mod
         call dt_evolve_bath_direct(zHO_inout,zHO_dot_in,dt_t)
       case(bath_propagator_taylor)
         call dt_evolve_bath_taylor(zHO_inout,dt_t)
-      case(bath_propagator_diagonalization)
-        call dt_evolve_bath_diag(zHO_inout,dt_t)
+      case(bath_propagator_taylor_mod)
+        call dt_evolve_bath_taylor_mod(zHO_inout,dt_t)
       case default
         stop 'wrong bath propagator'
       end select
@@ -475,6 +475,7 @@ module CTEF_mod
       real(8),intent(in) :: dt_t
       integer,parameter :: Nexp_Taylor = 6
       complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
+      complex(8) :: zHeff(2,2)
       integer :: iexp
       complex(8) :: zfact
 
@@ -482,6 +483,7 @@ module CTEF_mod
                      + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
       zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
                      + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+      zHeff = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
@@ -489,8 +491,8 @@ module CTEF_mod
       zfact = 1d0
       do iexp = 1,Nexp_Taylor
         zfact = zfact*(-zI*dt_t)/iexp
-        zhHO_t(:,1) = zHb_eff_CTEF(1,1)*zHO_t(:,1) + zHb_eff_CTEF(1,2)*zHO_t(:,2)
-        zhHO_t(:,2) = zHb_eff_CTEF(2,1)*zHO_t(:,1) + zHb_eff_CTEF(2,2)*zHO_t(:,2)
+        zhHO_t(:,1) = zHeff(1,1)*zHO_t(:,1) + zHeff(1,2)*zHO_t(:,2)
+        zhHO_t(:,2) = zHeff(2,1)*zHO_t(:,1) + zHeff(2,2)*zHO_t(:,2)
 
         zHO_inout = zHO_inout + zfact*zhHO_t
         zHO_t = zhHO_t
@@ -500,66 +502,42 @@ module CTEF_mod
 
     end subroutine dt_evolve_bath_taylor
 !-----------------------------------------------------------------------------------------
-    subroutine dt_evolve_bath_diag(zHO_inout,dt_t)
+    subroutine dt_evolve_bath_taylor_mod(zHO_inout,dt_t)
       implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
-      real(8),parameter :: epsilon = 1d-4
-      complex(8) :: zlambda(2), zeig_vec(2,2), zeig_vec_inv(2,2)
+      integer,parameter :: Nexp_Taylor = 4, Nexp_mult = 3
       complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
-      complex(8) :: zvec_t(Lsite,2),zexp_Hmat(2,2),zmat(2,2)
+      complex(8) :: zHeff(2,2)
+      complex(8) :: zvec_t(Lsite,2)
+      complex(8) :: zexp_Hmat(2,2),zmat1(2,2),zmat2(2,2)
       complex(8) :: zs
+      integer :: iexp
       real(8) :: ss
 
       zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
                      + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
       zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
                      + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
-
+      zHeff = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
-      if(abs(zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)) > epsilon &
-        .and. sum(abs(zlambda(:))) > epsilon)then
+      zmat1 = -zI*dt_t*0.5d0**Nexp_mult*zHeff
+      zexp_Hmat(:,1) = (/1d0,0d0/)
+      zexp_Hmat(:,2) = (/0d0,1d0/)
+      zexp_Hmat = zexp_Hmat + zmat1
+      zmat2 = zmat1
+      ss = 1d0
 
-        zs = (zHb_eff_CTEF(1,1) - zHb_eff_CTEF(2,2))**2 &
-          + 4d0*zHb_eff_CTEF(1,2)*zHb_eff_CTEF(2,1)
-        zlambda(1) = 0.5d0*( zHb_eff_CTEF(1,1) + zHb_eff_CTEF(2,2) + sqrt(zs) )
-        zlambda(2) = 0.5d0*( zHb_eff_CTEF(1,1) + zHb_eff_CTEF(2,2) - sqrt(zs) )
+      do iexp = 2,Nexp_Taylor
+        ss = ss/iexp
+        zmat2 = matmul(zmat2,zmat1)
+        zexp_Hmat = zexp_Hmat + ss * zmat2
+      end do
 
-        if( abs(zHb_eff_CTEF(1,1) -zlambda(1)) < abs(zHb_eff_CTEF(2,2) -zlambda(1)) )then
-          zeig_vec(1,1) = 1d0
-          zeig_vec(2,1) = (zlambda(1) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
-          zeig_vec(2,2) = 1d0
-          zeig_vec(1,2) = (zlambda(2) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
-        else
-          zeig_vec(1,2) = 1d0
-          zeig_vec(2,2) = (zlambda(2) - zHb_eff_CTEF(1,1))/zHb_eff_CTEF(1,2)
-          zeig_vec(2,1) = 1d0
-          zeig_vec(1,1) = (zlambda(1) - zHb_eff_CTEF(2,2))/zHb_eff_CTEF(2,1)
-        end if
-
-        call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
-        zexp_Hmat(1,1) = exp(-zI*dt_t*zlambda(1))
-        zexp_Hmat(2,1) = 0d0
-        zexp_Hmat(1,2) = 0d0
-        zexp_Hmat(2,2) = exp(-zI*dt_t*zlambda(2))
-        zmat = matmul(zexp_Hmat,zeig_vec_inv)
-        zexp_Hmat = matmul(zeig_vec,zmat)
-
-      else
-        zmat(1,1) = 0d0; zmat(2,1) = zHb_eff_CTEF(2,1)
-        zmat(1,2) = zHb_eff_CTEF(1,2); zmat(2,2) = 0d0
-        zexp_Hmat(1,1) = 1d0
-        zexp_Hmat(2,1) = 0d0
-        zexp_Hmat(1,2) = 0d0
-        zexp_Hmat(2,2) = 1d0
-        zexp_Hmat = zexp_Hmat - zI*dt_t*zmat +0.5d0*(-zI*dt_t)**2*matmul(zmat,zmat)
-        zmat(1,1) = exp(-zI*0.5d0*dt_t*zHb_eff_CTEF(1,1)); zmat(2,1) = 0d0
-        zmat(1,2) = 0d0; zmat(2,2) = exp(-zI*0.5d0*dt_t*zHb_eff_CTEF(2,2))
-        zexp_Hmat = matmul(zexp_Hmat,zmat)
-        zexp_Hmat = matmul(zmat,zexp_Hmat)
-
-      end if
+      do iexp = 1,Nexp_mult
+        zexp_Hmat = matmul(zexp_Hmat,zexp_Hmat)
+      end do
 
       
       zvec_t = zHO_inout
@@ -569,7 +547,7 @@ module CTEF_mod
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
-    end subroutine dt_evolve_bath_diag
+    end subroutine dt_evolve_bath_taylor_mod
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
