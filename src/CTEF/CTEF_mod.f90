@@ -21,6 +21,14 @@ module CTEF_mod
   complex(8) :: zHb_eff_CTEF(2,2), zSsb_CTEF(2,2), zSsb_inv_CTEF(2,2)
   complex(8),allocatable :: zX_HO_CTEF(:,:,:), zF_HO_CTEF(:,:)
 
+
+  integer,parameter :: bath_propagator_direct = 0
+  integer,parameter :: bath_propagator_taylor = 1
+  integer,parameter :: bath_propagator_taylor_mod = 2
+  integer,parameter :: bath_propagator_diag = 3
+  integer,parameter :: bath_propagator_CrankNicolson = 4
+  integer,parameter :: iflag_bath_propagator = bath_propagator_direct
+
   public :: CTEF
 
   contains
@@ -93,7 +101,7 @@ module CTEF_mod
 
         CALL ranlux_double (rvec, ran_len)
         phi0 = rvec(1); phi0 = 2d0*pi*phi0
-        if(myrank == 0 .and. mod(itraj,Ntraj/200)==0)write(*,*)"itraj=",itraj,"/",Ntraj
+        if(myrank == 0 .and. mod(itraj,max(Ntraj/200,1))==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
 !        write(*,*)"itraj=",itraj,"/",Ntraj
         
@@ -391,14 +399,14 @@ module CTEF_mod
 
 ! t -> t + dt/2
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+      call dt_evolve_bath(zHO_inout,zHO_dot_inout,dt*0.5d0)
 !      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
       zpsi_t = zpsi_inout
       zHO_t = zHO_inout
 
 
       call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-      call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+      call dt_evolve_bath(zHO_inout,zHO_dot_inout,dt*0.5d0)
 !      call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       do iscf = 1, Nscf_pred_corr
@@ -407,7 +415,7 @@ module CTEF_mod
         zpsi_inout = zpsi_t
 
         call dt_evolve_elec(zpsi_inout,dt*0.5d0)
-        call dt_evolve_bath_direct(zHO_inout,zHO_dot_inout,dt*0.5d0)
+        call dt_evolve_bath(zHO_inout,zHO_dot_inout,dt*0.5d0)
 !        call dt_evolve_bath_taylor(zHO_inout,dt*0.5d0)
 
       end do
@@ -434,6 +442,29 @@ module CTEF_mod
 
     end subroutine dt_evolve_elec
 !-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath(zHO_inout,zHO_dot_in,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      complex(8),intent(in) :: zHO_dot_in(Lsite,2)
+
+      select case(iflag_bath_propagator)
+      case(bath_propagator_direct)
+        call dt_evolve_bath_direct(zHO_inout,zHO_dot_in,dt_t)
+      case(bath_propagator_taylor)
+        call dt_evolve_bath_taylor(zHO_inout,dt_t)
+      case(bath_propagator_taylor_mod)
+        call dt_evolve_bath_taylor_mod(zHO_inout,dt_t)
+      case(bath_propagator_diag)
+        call dt_evolve_bath_diag(zHO_inout,dt_t)
+      case(bath_propagator_CrankNicolson)
+        call dt_evolve_bath_CrankNicolson(zHO_inout,dt_t)
+      case default
+        stop 'wrong bath propagator'
+      end select
+
+    end subroutine dt_evolve_bath
+!-----------------------------------------------------------------------------------------
     subroutine dt_evolve_bath_direct(zHO_inout,zHO_dot_in,dt_t)
       implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
@@ -445,10 +476,12 @@ module CTEF_mod
     end subroutine dt_evolve_bath_direct
 !-----------------------------------------------------------------------------------------
     subroutine dt_evolve_bath_taylor(zHO_inout,dt_t)
+      implicit none
       complex(8),intent(inout) :: zHO_inout(Lsite,2)
       real(8),intent(in) :: dt_t
       integer,parameter :: Nexp_Taylor = 6
       complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
+      complex(8) :: zHeff(2,2)
       integer :: iexp
       complex(8) :: zfact
 
@@ -456,6 +489,7 @@ module CTEF_mod
                      + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
       zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
                      + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+      zHeff = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
 
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
@@ -463,8 +497,8 @@ module CTEF_mod
       zfact = 1d0
       do iexp = 1,Nexp_Taylor
         zfact = zfact*(-zI*dt_t)/iexp
-        zhHO_t(:,1) = zHb_eff_CTEF(1,1)*zHO_t(:,1) + zHb_eff_CTEF(1,2)*zHO_t(:,2)
-        zhHO_t(:,2) = zHb_eff_CTEF(2,1)*zHO_t(:,1) + zHb_eff_CTEF(2,2)*zHO_t(:,2)
+        zhHO_t(:,1) = zHeff(1,1)*zHO_t(:,1) + zHeff(1,2)*zHO_t(:,2)
+        zhHO_t(:,2) = zHeff(2,1)*zHO_t(:,1) + zHeff(2,2)*zHO_t(:,2)
 
         zHO_inout = zHO_inout + zfact*zhHO_t
         zHO_t = zhHO_t
@@ -473,6 +507,169 @@ module CTEF_mod
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
     end subroutine dt_evolve_bath_taylor
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath_taylor_mod(zHO_inout,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      integer,parameter :: Nexp_Taylor = 6 !, Nexp_mult = 0
+      complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
+      complex(8) :: zHeff(2,2)
+      complex(8) :: zvec_t(Lsite,2)
+      complex(8) :: zexp_Hmat(2,2),zmat1(2,2),zmat2(2,2)
+      complex(8) :: zs
+      integer :: iexp
+      real(8) :: ss
+
+      zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
+      zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+      zHeff = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
+
+!      zmat1 = -zI*dt_t*0.5d0**Nexp_mult*zHeff
+      zmat1 = -zI*dt_t*zHeff
+      zexp_Hmat(:,1) = (/1d0,0d0/)
+      zexp_Hmat(:,2) = (/0d0,1d0/)
+      zexp_Hmat = zexp_Hmat + zmat1
+      zmat2 = zmat1
+      ss = 1d0
+
+      do iexp = 2,Nexp_Taylor
+        ss = ss/iexp
+        zmat2 = matmul(zmat2,zmat1)
+        zexp_Hmat = zexp_Hmat + ss * zmat2
+      end do
+
+!      do iexp = 1,Nexp_mult
+!        zexp_Hmat = matmul(zexp_Hmat,zexp_Hmat)
+!      end do
+
+      
+      zvec_t = zHO_inout
+
+      zHO_inout(:,1) = zexp_Hmat(1,1)*zvec_t(:,1) + zexp_Hmat(1,2)*zvec_t(:,2)
+      zHO_inout(:,2) = zexp_Hmat(2,1)*zvec_t(:,1) + zexp_Hmat(2,2)*zvec_t(:,2)
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
+
+    end subroutine dt_evolve_bath_taylor_mod
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath_diag(zHO_inout,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      real(8),parameter :: epsilon = 1d-6
+      integer,parameter :: Nexp_Taylor = 6
+      complex(8) :: zlambda(2), zeig_vec(2,2), zeig_vec_inv(2,2)
+      complex(8) :: zHO_t(Lsite,2),zhHO_t(Lsite,2), zF_HO_eff(Lsite,2)
+      complex(8) :: zHeff(2,2)
+      complex(8) :: zvec_t(Lsite,2),zexp_Hmat(2,2),zmat(2,2),zmat2(2,2)
+      integer :: iexp
+      complex(8) :: zs
+      real(8) :: ss
+
+      zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
+      zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+      zHeff = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
+
+      zs = (zHeff(1,1) - zHeff(2,2))**2 &
+        + 4d0*zHeff(1,2)*zHeff(2,1)
+      zlambda(1) = 0.5d0*( zHeff(1,1) + zHeff(2,2) + sqrt(zs) )
+      zlambda(2) = 0.5d0*( zHeff(1,1) + zHeff(2,2) - sqrt(zs) )
+
+      if(abs(zHeff(1,2)*zHeff(2,1)) > epsilon &
+        .and. abs(zlambda(1)*zlambda(2)) >epsilon)then
+
+        if( abs(zHeff(1,1) -zlambda(1)) < abs(zHeff(2,2) -zlambda(1)) )then
+          zeig_vec(1,1) = 1d0
+          zeig_vec(2,1) = (zlambda(1) - zHeff(1,1))/zHeff(1,2)
+          zeig_vec(2,2) = 1d0
+          zeig_vec(1,2) = (zlambda(2) - zHeff(2,2))/zHeff(2,1)
+        else
+          zeig_vec(1,2) = 1d0
+          zeig_vec(2,2) = (zlambda(2) - zHeff(1,1))/zHeff(1,2)
+          zeig_vec(2,1) = 1d0
+          zeig_vec(1,1) = (zlambda(1) - zHeff(2,2))/zHeff(2,1)
+        end if
+
+        call inverse_2x2_matrix(zeig_vec,zeig_vec_inv)
+        zexp_Hmat(1,1) = exp(-zI*dt_t*zlambda(1))
+        zexp_Hmat(2,1) = 0d0
+        zexp_Hmat(1,2) = 0d0
+        zexp_Hmat(2,2) = exp(-zI*dt_t*zlambda(2))
+        zmat = matmul(zexp_Hmat,zeig_vec_inv)
+        zexp_Hmat = matmul(zeig_vec,zmat)
+
+      else
+        zmat(1,1) = 0d0; zmat(2,1) = -zI*dt_t*zHeff(2,1)
+        zmat(1,2) = -zI*dt_t*zHeff(1,2); zmat(2,2) = 0d0
+        zexp_Hmat(1,1) = 1d0
+        zexp_Hmat(2,1) = 0d0
+        zexp_Hmat(1,2) = 0d0
+        zexp_Hmat(2,2) = 1d0
+        zexp_Hmat = zexp_Hmat +zmat
+        zmat2 = zmat
+        ss = 1d0
+        do iexp = 2,Nexp_Taylor
+          ss = ss/iexp
+          zmat2 = matmul(zmat2,zmat)
+          zexp_Hmat = zexp_Hmat + ss*zmat2
+        end do
+
+        zmat(1,1) = exp(-zI*0.5d0*dt_t*zHeff(1,1)); zmat(2,1) = 0d0
+        zmat(1,2) = 0d0; zmat(2,2) = exp(-zI*0.5d0*dt_t*zHeff(2,2))
+        zexp_Hmat = matmul(zexp_Hmat,zmat)
+        zexp_Hmat = matmul(zmat,zexp_Hmat)
+
+      end if
+
+      
+      zvec_t = zHO_inout
+
+      zHO_inout(:,1) = zexp_Hmat(1,1)*zvec_t(:,1) + zexp_Hmat(1,2)*zvec_t(:,2)
+      zHO_inout(:,2) = zexp_Hmat(2,1)*zvec_t(:,1) + zexp_Hmat(2,2)*zvec_t(:,2)
+
+      zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
+
+    end subroutine dt_evolve_bath_diag
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath_CrankNicolson(zHO_inout,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      real(8),parameter :: umat(2,2) = reshape( (/1d0, 0d0, 0d0, 1d0/), (/2,2/) )
+      complex(8) :: zmat1(2,2),zmat2(2,2),zmat2_inv(2,2)
+      complex(8) :: zvec_t(Lsite,2)
+      complex(8) :: zHeff(2,2),zF_HO_eff(Lsite,2)
+
+      zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
+      zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+      zHeff  = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
+      zmat1 = umat - 0.5d0*zi*dt_t*zHeff
+      zmat2 = umat + 0.5d0*zi*dt_t*zHeff
+      call inverse_2x2_matrix(zmat2,zmat2_inv)
+
+      zvec_t(:,1) = zmat1(1,1)*zHO_inout(:,1) + zmat1(1,2)*zHO_inout(:,2) &
+        -zI*dt_t* zF_HO_eff(:,1)
+      zvec_t(:,2) = zmat1(2,1)*zHO_inout(:,1) + zmat1(2,2)*zHO_inout(:,2) &
+        -zI*dt_t* zF_HO_eff(:,2)
+
+      zmat1 = (zI*zSsb_CTEF + 0.5d0*dt_t*zHb_eff_CTEF)
+      zmat2 = (zI*zSsb_CTEF - 0.5d0*dt_t*zHb_eff_CTEF)
+
+
+      zHO_inout(:,1) = zmat2_inv(1,1)*zvec_t(:,1) + zmat2_inv(1,2)*zvec_t(:,2)
+      zHO_inout(:,2) = zmat2_inv(2,1)*zvec_t(:,1) + zmat2_inv(2,2)*zvec_t(:,2)
+
+    end subroutine dt_evolve_bath_CrankNicolson
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
