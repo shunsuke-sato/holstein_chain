@@ -26,7 +26,8 @@ module CTEF_mod
   integer,parameter :: bath_propagator_taylor = 1
   integer,parameter :: bath_propagator_taylor_mod = 2
   integer,parameter :: bath_propagator_diag = 3
-  integer,parameter :: iflag_bath_propagator = bath_propagator_taylor_mod
+  integer,parameter :: bath_propagator_CrankNicolson = 4
+  integer,parameter :: iflag_bath_propagator = bath_propagator_direct
 
   public :: CTEF
 
@@ -456,6 +457,8 @@ module CTEF_mod
         call dt_evolve_bath_taylor_mod(zHO_inout,dt_t)
       case(bath_propagator_diag)
         call dt_evolve_bath_diag(zHO_inout,dt_t)
+      case(bath_propagator_CrankNicolson)
+        call dt_evolve_bath_CrankNicolson(zHO_inout,dt_t)
       case default
         stop 'wrong bath propagator'
       end select
@@ -635,6 +638,38 @@ module CTEF_mod
       zHO_inout = zHO_inout -zI*0.5d0*dt_t*zF_HO_eff
 
     end subroutine dt_evolve_bath_diag
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_bath_CrankNicolson(zHO_inout,dt_t)
+      implicit none
+      complex(8),intent(inout) :: zHO_inout(Lsite,2)
+      real(8),intent(in) :: dt_t
+      real(8),parameter :: umat(2,2) = reshape( (/1d0, 0d0, 0d0, 1d0/), (/2,2/) )
+      complex(8) :: zmat1(2,2),zmat2(2,2),zmat2_inv(2,2)
+      complex(8) :: zvec_t(Lsite,2)
+      complex(8) :: zHeff(2,2),zF_HO_eff(Lsite,2)
+
+      zF_HO_eff(:,1) = zSsb_inv_CTEF(1,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(1,2)*zF_HO_CTEF(:,2)
+      zF_HO_eff(:,2) = zSsb_inv_CTEF(2,1)*zF_HO_CTEF(:,1) &
+                     + zSsb_inv_CTEF(2,2)*zF_HO_CTEF(:,2)
+      zHeff  = matmul(zSsb_inv_CTEF,zHb_eff_CTEF)
+      zmat1 = umat - 0.5d0*zi*dt_t*zHeff
+      zmat2 = umat + 0.5d0*zi*dt_t*zHeff
+      call inverse_2x2_matrix(zmat2,zmat2_inv)
+
+      zvec_t(:,1) = zmat1(1,1)*zHO_inout(:,1) + zmat1(1,2)*zHO_inout(:,2) &
+        -zI*dt_t* zF_HO_eff(:,1)
+      zvec_t(:,2) = zmat1(2,1)*zHO_inout(:,1) + zmat1(2,2)*zHO_inout(:,2) &
+        -zI*dt_t* zF_HO_eff(:,2)
+
+      zmat1 = (zI*zSsb_CTEF + 0.5d0*dt_t*zHb_eff_CTEF)
+      zmat2 = (zI*zSsb_CTEF - 0.5d0*dt_t*zHb_eff_CTEF)
+
+
+      zHO_inout(:,1) = zmat2_inv(1,1)*zvec_t(:,1) + zmat2_inv(1,2)*zvec_t(:,2)
+      zHO_inout(:,2) = zmat2_inv(2,1)*zvec_t(:,1) + zmat2_inv(2,2)*zvec_t(:,2)
+
+    end subroutine dt_evolve_bath_CrankNicolson
 !-----------------------------------------------------------------------------------------
     subroutine hs_zpsi(zpsi_in,zhpsi_out)
       implicit none
