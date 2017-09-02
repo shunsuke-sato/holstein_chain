@@ -238,6 +238,8 @@ module CTEF_mod
 
       zHO_dot_CTEF = 0d0
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+      call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+      call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       Ekin_CTEF_t(0) = sum(zEs_CTEF*zSb_CTEF)
       Ebath_CTEF_t(0) = sum(zEb_CTEF*zSs_CTEF)
       Ecoup_CTEF_t(0) = sum(zEc_CTEF)
@@ -245,7 +247,8 @@ module CTEF_mod
 
       do it = 0,Nt-1
 
-        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+!        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+        call dt_evolve_Runge_Kutta(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
         Ekin_CTEF_t(it+1) = sum(zEs_CTEF*zSb_CTEF)
         Ebath_CTEF_t(it+1) = sum(zEb_CTEF*zSs_CTEF)
@@ -389,6 +392,56 @@ module CTEF_mod
       end do
 
     end subroutine refine_effective_hamiltonian
+!-----------------------------------------------------------------------------------------
+    subroutine dt_evolve_Runge_Kutta(zpsi_inout,zHO_inout,zHO_dot_inout)
+      implicit none
+      complex(8),intent(inout) :: zpsi_inout(Lsite,2),zHO_inout(Lsite,2)
+      complex(8),intent(inout) :: zHO_dot_inout(Lsite,2)
+      complex(8) :: zpsi_t0(Lsite,2),zHO_t0(Lsite,2)
+      complex(8) :: zpsi_t1(Lsite,2),zHO_t1(Lsite,2)
+      complex(8) :: zpsi_t2(Lsite,2),zHO_t2(Lsite,2)
+      complex(8) :: zpsi_t3(Lsite,2),zHO_t3(Lsite,2)
+      complex(8) :: zpsi_t4(Lsite,2),zHO_t4(Lsite,2)
+      integer :: iscf
+
+      zpsi_t0 = zpsi_inout
+      zHO_t0 = zHO_inout
+
+! k1
+      call heff_zpsi(zpsi_inout,zpsi_t1)
+      zpsi_t1 = -zI*zpsi_t1
+      zHO_t1  = zHO_dot_inout
+
+! k2
+      zpsi_inout = zpsi_inout + 0.5d0*dt*zpsi_t1
+      zHO_inout  = zHO_inout  + 0.5d0*dt*zHO_t1
+      call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
+      call heff_zpsi(zpsi_inout,zpsi_t2)
+      zpsi_t2 = -zI*zpsi_t2
+      zHO_t2  = zHO_dot_inout
+
+! k3
+      zpsi_inout = zpsi_t0 + 0.5d0*dt*zpsi_t2
+      zHO_inout  = zHO_t0  + 0.5d0*dt*zHO_t2
+      call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
+      call heff_zpsi(zpsi_inout,zpsi_t3)
+      zpsi_t3 = -zI*zpsi_t3
+      zHO_t3  = zHO_dot_inout
+
+! k4
+      zpsi_inout = zpsi_t0 + dt*zpsi_t3
+      zHO_inout  = zHO_t0  + dt*zHO_t3
+      call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
+      call heff_zpsi(zpsi_inout,zpsi_t4)
+      zpsi_t4 = -zI*zpsi_t4
+      zHO_t4  = zHO_dot_inout
+
+      zpsi_inout = zpsi_t0 + dt/6d0*(zpsi_t1 + 2d0*zpsi_t2 + 2d0*zpsi_t3 + zpsi_t4)
+      zHO_inout  = zHO_t0  + dt/6d0*(zHO_t1  + 2d0*zHO_t2  + 2d0*zHO_t3  + zHO_t4)
+
+      call refine_effective_hamiltonian(zpsi_inout,zHO_inout,zHO_dot_inout)
+
+    end subroutine dt_evolve_Runge_Kutta
 !-----------------------------------------------------------------------------------------
     subroutine dt_evolve_etrs(zpsi_inout,zHO_inout,zHO_dot_inout)
       implicit none
