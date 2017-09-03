@@ -204,7 +204,7 @@ module CTEF_mod
         write(*,*)"# of stable  trajectries",ntraj_stable
         write(*,*)"# of skipped trajectries",ntraj_tot - ntraj_stable
         open(21,file="CTEF_norm.out")
-        do it = 0,Nt+1
+        do it = 0,Nt
           write(21,"(999e26.16e3)")dt*it,norm_CTEF(it),Ekin_CTEF(it),Ebath_CTEF(it),Ecoup_CTEF(it)
         end do
         close(21)
