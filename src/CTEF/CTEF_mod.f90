@@ -11,6 +11,7 @@ module CTEF_mod
   private
 
   integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
+  real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -82,10 +83,13 @@ module CTEF_mod
       real(8) :: x1,x2,p1,p2
       integer,parameter :: ran_len = 1
       real(8) :: rvec(ran_len)
+      logical :: is_norm_converged
+      integer :: ntraj_tot, ntraj_tot_l
+      integer :: ntraj_stable, ntraj_stable_l
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
       Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
-
+      ntraj_tot_l = 0; ntraj_stable_l = 0
 
       do itraj = 1, Ntraj
 
@@ -147,7 +151,9 @@ module CTEF_mod
               Ekin_CTEF_phase_ave = 0d0
               Ebath_CTEF_phase_ave = 0d0
               Ecoup_CTEF_phase_ave = 0d0
+              is_norm_converged = .true.
               do iphase = 1,Nphase
+                if(.not. is_norm_converged)exit
                 phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
                 call set_initial_condition(zpsi_store,zHO_store, &
                   zpsi_CTEF, zHO_CTEF, phi, norm)
@@ -162,13 +168,18 @@ module CTEF_mod
                   + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
                 Ecoup_CTEF_phase_ave = Ecoup_CTEF_phase_ave &
                   + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
-
+                
+                if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
 
               end do
-              norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
-              Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
-              Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
-              Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
+              if(is_norm_converged)then
+                ntraj_stable_l = ntraj_stable_l + 1
+                norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
+                Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
+                Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
+                Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
+              end if
+              ntraj_tot_l = ntraj_tot_l + 1
               
             end do
           end do
@@ -176,18 +187,24 @@ module CTEF_mod
         
       end do
 
-      norm_CTEF_l = norm_CTEF_l/dble(Ntraj*Nphase)/16d0
-      Ekin_CTEF_l = Ekin_CTEF_l/dble(Ntraj*Nphase)/16d0
-      Ebath_CTEF_l = Ebath_CTEF_l/dble(Ntraj*Nphase)/16d0
-      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(Ntraj*Nphase)/16d0
+      call MPI_ALLREDUCE(ntraj_tot_l,ntraj_tot,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(ntraj_stable_l,ntraj_stable,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+      norm_CTEF_l = norm_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
+      Ekin_CTEF_l = Ekin_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
+      Ebath_CTEF_l = Ebath_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
+      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ekin_CTEF_l,Ekin_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ebath_CTEF_l,Ebath_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ecoup_CTEF_l,Ecoup_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
       if(myrank == 0)then
+        write(*,*)"# of total   trajectries",ntraj_tot
+        write(*,*)"# of stable  trajectries",ntraj_stable
+        write(*,*)"# of skipped trajectries",ntraj_tot - ntraj_stable
         open(21,file="CTEF_norm.out")
-        do it = 0,Nt+1
+        do it = 0,Nt
           write(21,"(999e26.16e3)")dt*it,norm_CTEF(it),Ekin_CTEF(it),Ebath_CTEF(it),Ecoup_CTEF(it)
         end do
         close(21)
