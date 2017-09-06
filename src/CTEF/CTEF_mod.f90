@@ -12,6 +12,7 @@ module CTEF_mod
 
   integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
   real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
+  real(8),parameter :: sigma_correlated_gaussian = 1.0d0 !1d0
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -94,17 +95,19 @@ module CTEF_mod
       do itraj = 1, Ntraj
 
 ! == bath distribution
-        do i = 1,Lsite
-          call gaussian_random_number(x1,p1)
-          call gaussian_random_number(x2,p2)
-          zHO_gauss_store(i,1) = (x1 + zI * p1)*sqrt(2d0/3d0)
-          zHO_gauss_store(i,2) = (x2 + zI * p2)*sqrt(0.5d0)
-        end do
-        zHO_store(:,1) = zHO_gauss_store(:,1)
-        zHO_store(:,2) = zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
-! == bath distribution
-        call calc_zweight(zHO_store,zweight0)
+        call bath_sampling_correlated_gaussian(zHO_store,zweight0)
 
+!        do i = 1,Lsite
+!          call gaussian_random_number(x1,p1)
+!          call gaussian_random_number(x2,p2)
+!          zHO_gauss_store(i,1) = (x1 + zI * p1)*sqrt(2d0/3d0)
+!          zHO_gauss_store(i,2) = (x2 + zI * p2)*sqrt(0.5d0)
+!        end do
+!        zHO_store(:,1) = zHO_gauss_store(:,1)
+!        zHO_store(:,2) = zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
+!        call calc_zweight(zHO_store,zweight0)
+
+! == bath distribution
 
         call ranlux_double (rvec, ran_len)
         phi0 = rvec(1); phi0 = 2d0*pi*phi0
@@ -184,6 +187,40 @@ module CTEF_mod
       end if
 
     end subroutine CTEF_dynamics
+!-----------------------------------------------------------------------------------------
+    subroutine bath_sampling_correlated_gaussian(zHO_out,zweight)
+      implicit none
+      complex(8),intent(out) :: zHO_out(Lsite,2)
+      complex(8),intent(out) :: zweight
+      integer :: i
+      real(8) :: x1,x2,p1,p2
+      complex(8) :: z1,z2
+      real(8) :: sigma, norm_fact, alpha, sigma1, sigma2
+
+      sigma = sigma_correlated_gaussian
+      norm_fact = 4d0*pi**2/( &
+        (1d0+1d0/sigma**2) * &
+        (1d0+1d0/(1d0+sigma**2)) )
+      alpha = 1d0/(sigma**2 + 1d0)
+      sigma1 = 1d0+alpha**2+(1d0-alpha)**2/sigma**2; sigma1 = 1d0/sqrt(sigma1)
+      sigma2 = 1d0+1d0/sigma**2; sigma2 = 1d0/sqrt(sigma2)
+
+      do i = 1,Lsite
+        call gaussian_random_number(x1,p1)
+        call gaussian_random_number(x2,p2)
+        z1 = (x1 + zI * p1)*sigma1
+        z2 = (x2 + zI * p2)*sigma2
+        zHO_out(i,1) = z1
+        zHO_out(i,2) = z2 + alpha*z1
+      end do
+
+      zweight = 1d0
+      do i = 1,Lsite
+        zweight = zweight * norm_fact/pi**2*exp( &
+          0.5d0/sigma**2*abs(zHO_out(i,1)-zHO_out(i,2))**2 )
+      end do
+
+    end subroutine bath_sampling_correlated_gaussian
 !-----------------------------------------------------------------------------------------
     subroutine calc_zweight(zHO_in,zweight)
       implicit none
