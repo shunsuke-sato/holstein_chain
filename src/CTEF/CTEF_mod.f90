@@ -13,6 +13,7 @@ module CTEF_mod
   integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
   real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
   real(8),parameter :: sigma_correlated_gaussian = 1.0d0 !1d0
+  real(8),parameter :: sigma_independent_gaussian = sqrt(0.5d0) !1d0
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -95,7 +96,8 @@ module CTEF_mod
       do itraj = 1, Ntraj
 
 ! == bath distribution
-        call bath_sampling_correlated_gaussian(zHO_store,zweight0)
+!        call bath_sampling_correlated_gaussian(zHO_store,zweight0)
+        call bath_sampling_independent_gaussian(zHO_store,zweight0)
 
 !        do i = 1,Lsite
 !          call gaussian_random_number(x1,p1)
@@ -221,6 +223,36 @@ module CTEF_mod
       end do
 
     end subroutine bath_sampling_correlated_gaussian
+!-----------------------------------------------------------------------------------------
+    subroutine bath_sampling_independent_gaussian(zHO_out,zweight)
+      implicit none
+      complex(8),intent(out) :: zHO_out(Lsite,2)
+      complex(8),intent(out) :: zweight
+      integer :: i
+      real(8) :: x1,x2,p1,p2
+      complex(8) :: z1,z2
+      real(8) :: sigma
+
+      sigma = sigma_independent_gaussian
+
+      do i = 1,Lsite
+        call gaussian_random_number(x1,p1)
+        call gaussian_random_number(x2,p2)
+        z1 = (x1 + zI * p1)*sqrt(0.5d0)
+        z2 = (x2 + zI * p2)*sigma
+        zHO_out(i,1) = z1
+        zHO_out(i,2) = z2 + z1
+      end do
+
+      zweight = 1d0
+      do i = 1,Lsite
+        zweight = zweight * 2d0*sigma**2*exp( &
+           0.5d0*abs(zHO_out(i,1))**2          &
+          -0.5d0*abs(zHO_out(i,2))**2          &
+          +0.5d0/sigma**2*abs(zHO_out(i,1)-zHO_out(i,2))**2 )
+      end do
+
+    end subroutine bath_sampling_independent_gaussian
 !-----------------------------------------------------------------------------------------
     subroutine calc_zweight(zHO_in,zweight)
       implicit none
