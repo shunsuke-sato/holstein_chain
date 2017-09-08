@@ -12,6 +12,8 @@ module CTEF_mod
 
   integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
   real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
+  real(8),parameter :: sigma_correlated_gaussian = 1.0d0 !1d0
+  real(8),parameter :: sigma_independent_gaussian = sqrt(0.5d0) !1d0
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -94,97 +96,73 @@ module CTEF_mod
       do itraj = 1, Ntraj
 
 ! == bath distribution
-        do i = 1,Lsite
-          call gaussian_random_number(x1,p1)
-          call gaussian_random_number(x2,p2)
-          zHO_gauss_store(i,1) = (x1 + zI * p1)*sqrt(2d0/3d0)
-          zHO_gauss_store(i,2) = (x2 + zI * p2)*sqrt(0.5d0)
-        end do
+!        call bath_sampling_correlated_gaussian(zHO_store,zweight0)
+        call bath_sampling_independent_gaussian(zHO_store,zweight0)
+
+!        do i = 1,Lsite
+!          call gaussian_random_number(x1,p1)
+!          call gaussian_random_number(x2,p2)
+!          zHO_gauss_store(i,1) = (x1 + zI * p1)*sqrt(2d0/3d0)
+!          zHO_gauss_store(i,2) = (x2 + zI * p2)*sqrt(0.5d0)
+!        end do
+!        zHO_store(:,1) = zHO_gauss_store(:,1)
+!        zHO_store(:,2) = zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
+!        call calc_zweight(zHO_store,zweight0)
+
 ! == bath distribution
 
-
-        CALL ranlux_double (rvec, ran_len)
+        call ranlux_double (rvec, ran_len)
         phi0 = rvec(1); phi0 = 2d0*pi*phi0
         if(myrank == 0 .and. mod(itraj,max(Ntraj/200,1))==0)write(*,*)"itraj=",itraj,"/",Ntraj
         if(mod(itraj,Nprocs) /= myrank)cycle
-!        write(*,*)"itraj=",itraj,"/",Ntraj
-        
-        do i_antithetic = 1,4
-          do j_antithetic = 1,4
 
-            select case(i_antithetic)
-            case(1)
-              zHO_store(:,1) = zHO_gauss_store(:,1)
-            case(2)
-              zHO_store(:,1) = -zHO_gauss_store(:,1)
-            case(3)
-              zHO_store(:,1) = conjg(zHO_gauss_store(:,1))
-            case(4)
-              zHO_store(:,1) = -conjg(zHO_gauss_store(:,1))
-            end select
-
-            select case(j_antithetic)
-            case(1)
-              zHO_store(:,2) = zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
-            case(2)
-              zHO_store(:,2) = -zHO_gauss_store(:,2)+0.5d0*zHO_store(:,1)
-            case(3)
-              zHO_store(:,2) = conjg(zHO_gauss_store(:,2))+0.5d0*zHO_store(:,1)
-            case(4)
-              zHO_store(:,2) = -conjg(zHO_gauss_store(:,2))+0.5d0*zHO_store(:,1)
-            end select
-
-            call calc_zweight(zHO_store,zweight0)
 
 ! == localized init wf
-            i_dm = 1
-            do j_dm = 1,Lsite
-              zpsi_store = 0d0 
-              zpsi_store(i_dm,1) = 1d0; zpsi_store(j_dm,2) = 1d0 
-              zrho_dm = exp(zI*2d0*pi*(j_dm-i_dm)*dble(Lsite/2)/dble(Lsite)) !&
+        i_dm = 1
+        do j_dm = 1,Lsite
+          zpsi_store = 0d0 
+          zpsi_store(i_dm,1) = 1d0; zpsi_store(j_dm,2) = 1d0 
+          zrho_dm = exp(zI*2d0*pi*(j_dm-i_dm)*dble(Lsite/2)/dble(Lsite)) !&
               !              /dble(Lsite)*dble(Lsite*)
 ! == localized init wf
 
-              zweight = zweight0 * zrho_dm
+          zweight = zweight0 * zrho_dm
 
-              norm_CTEF_phase_ave = 0d0
-              Ekin_CTEF_phase_ave = 0d0
-              Ebath_CTEF_phase_ave = 0d0
-              Ecoup_CTEF_phase_ave = 0d0
-              is_norm_converged = .true.
-              do iphase = 1,Nphase
-                if(.not. is_norm_converged)exit
-                phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
-                call set_initial_condition(zpsi_store,zHO_store, &
-                  zpsi_CTEF, zHO_CTEF, phi, norm)
-              
-                call propagation(norm_CTEF_t,Ekin_CTEF_t, Ebath_CTEF_t, Ecoup_CTEF_t)
+          norm_CTEF_phase_ave = 0d0
+          Ekin_CTEF_phase_ave = 0d0
+          Ebath_CTEF_phase_ave = 0d0
+          Ecoup_CTEF_phase_ave = 0d0
+          is_norm_converged = .true.
+          do iphase = 1,Nphase
+            if(.not. is_norm_converged)exit
+            phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
+            call set_initial_condition(zpsi_store,zHO_store, &
+              zpsi_CTEF, zHO_CTEF, phi, norm)
+            
+            call propagation(norm_CTEF_t,Ekin_CTEF_t, Ebath_CTEF_t, Ecoup_CTEF_t)
               !          if(myrank == 0)write(*,*)"norm",norm_CTEF_t(0),norm
-                norm_CTEF_phase_ave = norm_CTEF_phase_ave &
-                  + norm_CTEF_t*exp(-zI*phi)*norm*zweight
-                Ekin_CTEF_phase_ave = Ekin_CTEF_phase_ave &
-                  + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
-                Ebath_CTEF_phase_ave = Ebath_CTEF_phase_ave &
-                  + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
-                Ecoup_CTEF_phase_ave = Ecoup_CTEF_phase_ave &
-                  + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
-                
-                if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
-
-              end do
-              if(is_norm_converged)then
-                ntraj_stable_l = ntraj_stable_l + 1
-                norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
-                Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
-                Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
-                Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
-              end if
-              ntraj_tot_l = ntraj_tot_l + 1
-              
-            end do
+            norm_CTEF_phase_ave = norm_CTEF_phase_ave &
+              + norm_CTEF_t*exp(-zI*phi)*norm*zweight
+            Ekin_CTEF_phase_ave = Ekin_CTEF_phase_ave &
+              + Ekin_CTEF_t*exp(-zI*phi)*norm*zweight
+            Ebath_CTEF_phase_ave = Ebath_CTEF_phase_ave &
+              + Ebath_CTEF_t*exp(-zI*phi)*norm*zweight
+            Ecoup_CTEF_phase_ave = Ecoup_CTEF_phase_ave &
+              + Ecoup_CTEF_t*exp(-zI*phi)*norm*zweight
+            
+            if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
+            
           end do
+          if(is_norm_converged)then
+            ntraj_stable_l = ntraj_stable_l + 1
+            norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
+            Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
+            Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
+            Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
+          end if
+          ntraj_tot_l = ntraj_tot_l + 1
+          
         end do
-        
       end do
 
       call MPI_ALLREDUCE(ntraj_tot_l,ntraj_tot,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -211,6 +189,70 @@ module CTEF_mod
       end if
 
     end subroutine CTEF_dynamics
+!-----------------------------------------------------------------------------------------
+    subroutine bath_sampling_correlated_gaussian(zHO_out,zweight)
+      implicit none
+      complex(8),intent(out) :: zHO_out(Lsite,2)
+      complex(8),intent(out) :: zweight
+      integer :: i
+      real(8) :: x1,x2,p1,p2
+      complex(8) :: z1,z2
+      real(8) :: sigma, norm_fact, alpha, sigma1, sigma2
+
+      sigma = sigma_correlated_gaussian
+      norm_fact = 4d0*pi**2/( &
+        (1d0+1d0/sigma**2) * &
+        (1d0+1d0/(1d0+sigma**2)) )
+      alpha = 1d0/(sigma**2 + 1d0)
+      sigma1 = 1d0+alpha**2+(1d0-alpha)**2/sigma**2; sigma1 = 1d0/sqrt(sigma1)
+      sigma2 = 1d0+1d0/sigma**2; sigma2 = 1d0/sqrt(sigma2)
+
+      do i = 1,Lsite
+        call gaussian_random_number(x1,p1)
+        call gaussian_random_number(x2,p2)
+        z1 = (x1 + zI * p1)*sigma1
+        z2 = (x2 + zI * p2)*sigma2
+        zHO_out(i,1) = z1
+        zHO_out(i,2) = z2 + alpha*z1
+      end do
+
+      zweight = 1d0
+      do i = 1,Lsite
+        zweight = zweight * norm_fact/pi**2*exp( &
+          0.5d0/sigma**2*abs(zHO_out(i,1)-zHO_out(i,2))**2 )
+      end do
+
+    end subroutine bath_sampling_correlated_gaussian
+!-----------------------------------------------------------------------------------------
+    subroutine bath_sampling_independent_gaussian(zHO_out,zweight)
+      implicit none
+      complex(8),intent(out) :: zHO_out(Lsite,2)
+      complex(8),intent(out) :: zweight
+      integer :: i
+      real(8) :: x1,x2,p1,p2
+      complex(8) :: z1,z2
+      real(8) :: sigma
+
+      sigma = sigma_independent_gaussian
+
+      do i = 1,Lsite
+        call gaussian_random_number(x1,p1)
+        call gaussian_random_number(x2,p2)
+        z1 = (x1 + zI * p1)*sqrt(0.5d0)
+        z2 = (x2 + zI * p2)*sigma
+        zHO_out(i,1) = z1
+        zHO_out(i,2) = z2 + z1
+      end do
+
+      zweight = 1d0
+      do i = 1,Lsite
+        zweight = zweight * 2d0*sigma**2*exp( &
+           0.5d0*abs(zHO_out(i,1))**2          &
+          -0.5d0*abs(zHO_out(i,2))**2          &
+          +0.5d0/sigma**2*abs(zHO_out(i,1)-zHO_out(i,2))**2 )
+      end do
+
+    end subroutine bath_sampling_independent_gaussian
 !-----------------------------------------------------------------------------------------
     subroutine calc_zweight(zHO_in,zweight)
       implicit none
