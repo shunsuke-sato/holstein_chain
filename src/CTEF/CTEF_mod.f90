@@ -96,8 +96,8 @@ module CTEF_mod
       do itraj = 1, Ntraj
 
 ! == bath distribution
-!        call bath_sampling_correlated_gaussian(zHO_store,zweight0)
-        call bath_sampling_independent_gaussian(zHO_store,zweight0)
+        call bath_sampling_correlated_gaussian(zHO_store,zweight0)
+!        call bath_sampling_independent_gaussian(zHO_store,zweight0)
 
 !        do i = 1,Lsite
 !          call gaussian_random_number(x1,p1)
