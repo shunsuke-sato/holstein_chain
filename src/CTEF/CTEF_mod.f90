@@ -97,12 +97,12 @@ module CTEF_mod
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
       Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
-      norm_CTEF_sl = 0d0; Ekin_CTEF_sl = 0d0
-      Ebath_CTEF_sl = 0d0; Ecoup_CTEF_sl = 0d0
       ntraj_tot_l = 0; ntraj_stable_l = 0
       
       itraj = 0
       do itraj_t  = 1, Ntraj/nsize_store
+      norm_CTEF_sl = 0d0; Ekin_CTEF_sl = 0d0
+      Ebath_CTEF_sl = 0d0; Ecoup_CTEF_sl = 0d0
       do istore = 1, nsize_store
         itraj = itraj + 1
 ! == bath distribution
