@@ -14,6 +14,7 @@ module CTEF_mod
   real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
   real(8),parameter :: sigma_correlated_gaussian = 1.0d0 !1d0
   real(8),parameter :: sigma_independent_gaussian = sqrt(0.5d0) !1d0
+  integer,parameter :: nsize_store = 10000
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
   complex(8),allocatable :: zHO_dot_CTEF(:,:)
 
@@ -71,15 +72,20 @@ module CTEF_mod
       complex(8) :: zweight, zweight0
       real(8) :: norm, phi0,phi
       integer :: itraj, iphase, it, i,j
+      integer :: itraj_t, istore
       integer :: i_antithetic, j_antithetic
       integer :: i_dm, j_dm
       real(8) :: norm_CTEF(0:Nt+1),norm_CTEF_l(0:Nt+1),norm_CTEF_t(0:Nt+1)
+      real(8) :: norm_CTEF_sl(0:Nt+1)
       real(8) :: norm_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ekin_CTEF(0:Nt+1),Ekin_CTEF_l(0:Nt+1),Ekin_CTEF_t(0:Nt+1)
+      real(8) :: Ekin_CTEF_sl(0:Nt+1)
       real(8) :: Ekin_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ebath_CTEF(0:Nt+1),Ebath_CTEF_l(0:Nt+1),Ebath_CTEF_t(0:Nt+1)
+      real(8) :: Ebath_CTEF_sl(0:Nt+1)
       real(8) :: Ebath_CTEF_phase_ave(0:Nt+1)
       real(8) :: Ecoup_CTEF(0:Nt+1),Ecoup_CTEF_l(0:Nt+1),Ecoup_CTEF_t(0:Nt+1)
+      real(8) :: Ecoup_CTEF_sl(0:Nt+1)
       real(8) :: Ecoup_CTEF_phase_ave(0:Nt+1)
       complex(8) :: zrho_dm
       real(8) :: x1,x2,p1,p2
@@ -91,10 +97,14 @@ module CTEF_mod
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
       Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
+      norm_CTEF_sl = 0d0; Ekin_CTEF_sl = 0d0
+      Ebath_CTEF_sl = 0d0; Ecoup_CTEF_sl = 0d0
       ntraj_tot_l = 0; ntraj_stable_l = 0
-
-      do itraj = 1, Ntraj
-
+      
+      itraj = 0
+      do itraj_t  = 1, Ntraj/nsize_store
+      do istore = 1, nsize_store
+        itraj = itraj + 1
 ! == bath distribution
         call bath_sampling_correlated_gaussian(zHO_store,zweight0)
 !        call bath_sampling_independent_gaussian(zHO_store,zweight0)
@@ -155,23 +165,32 @@ module CTEF_mod
           end do
           if(is_norm_converged)then
             ntraj_stable_l = ntraj_stable_l + 1
-            norm_CTEF_l = norm_CTEF_l + norm_CTEF_phase_ave
-            Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_phase_ave
-            Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_phase_ave
-            Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_phase_ave
+            norm_CTEF_sl = norm_CTEF_sl + norm_CTEF_phase_ave
+            Ekin_CTEF_sl = Ekin_CTEF_sl + Ekin_CTEF_phase_ave
+            Ebath_CTEF_sl = Ebath_CTEF_sl + Ebath_CTEF_phase_ave
+            Ecoup_CTEF_sl = Ecoup_CTEF_sl + Ecoup_CTEF_phase_ave
           end if
           ntraj_tot_l = ntraj_tot_l + 1
-          
+
         end do
+
+      end do
+
+      norm_CTEF_l = norm_CTEF_l + norm_CTEF_sl/dble(nsize_store)
+      Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_sl/dble(nsize_store)
+      Ebath_CTEF_l = Ebath_CTEF_l + Ebath_CTEF_sl/dble(nsize_store)
+      Ecoup_CTEF_l = Ecoup_CTEF_l + Ecoup_CTEF_sl/dble(nsize_store)
+
+
       end do
 
       call MPI_ALLREDUCE(ntraj_tot_l,ntraj_tot,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(ntraj_stable_l,ntraj_stable,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-      norm_CTEF_l = norm_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
-      Ekin_CTEF_l = Ekin_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
-      Ebath_CTEF_l = Ebath_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
-      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(ntraj_stable*Nphase)*Lsite
+      norm_CTEF_l = norm_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
+      Ekin_CTEF_l = Ekin_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
+      Ebath_CTEF_l = Ebath_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
+      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ekin_CTEF_l,Ekin_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ebath_CTEF_l,Ebath_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
