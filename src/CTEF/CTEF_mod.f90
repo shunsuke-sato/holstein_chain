@@ -13,6 +13,7 @@ module CTEF_mod
   integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
   real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
   real(8),parameter :: epsilon_ovlp_ini = 1d-10 ! 10%
+  integer(8)        :: num_regen_coh_states = 0
   real(8),parameter :: sigma_correlated_gaussian = 1.0d0 !1d0
   real(8),parameter :: sigma_independent_gaussian = sqrt(0.5d0) !1d0
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
@@ -182,6 +183,7 @@ module CTEF_mod
         write(*,*)"# of total   trajectries",ntraj_tot
         write(*,*)"# of stable  trajectries",ntraj_stable
         write(*,*)"# of skipped trajectries",ntraj_tot - ntraj_stable
+        write(*,*)"# of regeneration of coherent states",num_regen_coh_states
         open(21,file="CTEF_norm.out")
         do it = 0,Nt
           write(21,"(999e26.16e3)")dt*it,norm_CTEF(it),Ekin_CTEF(it),Ebath_CTEF(it),Ecoup_CTEF(it)
@@ -221,10 +223,7 @@ module CTEF_mod
 
         norm0 = exp(-sum(abs(zHO_out(:,1) - zHO_out(:,2))**2))
         if(norm0 > epsilon_ovlp_ini)exit
-        if(myrank == 0)then
-          write(*,"(A)")"Warning: Initial overlap of coherent states"
-          write(*,"(A)")"is too small. New coherent states are regenerated."
-        end if
+        num_regen_coh_states = num_regen_coh_states + 1
       end do
 
       zweight = 1d0
