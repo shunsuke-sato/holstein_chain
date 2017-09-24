@@ -12,6 +12,7 @@ module CTEF_mod
 
   integer,parameter :: Nphase = 2, Nscf_refine = 2, Nscf_pred_corr = 2
   real(8),parameter :: epsilon_norm = 10d0/1d2 ! 10%
+  real(8),parameter :: epsilon_ovlp_ini = 1d-10 ! 10%
   real(8),parameter :: sigma_correlated_gaussian = 1.0d0 !1d0
   real(8),parameter :: sigma_independent_gaussian = sqrt(0.5d0) !1d0
   complex(8),allocatable :: zpsi_CTEF(:,:),zHO_CTEF(:,:)
@@ -198,6 +199,7 @@ module CTEF_mod
       real(8) :: x1,x2,p1,p2
       complex(8) :: z1,z2
       real(8) :: sigma, norm_fact, alpha, sigma1, sigma2
+      real(8) :: norm0
 
       sigma = sigma_correlated_gaussian
       norm_fact = 4d0*pi**2/( &
@@ -207,13 +209,22 @@ module CTEF_mod
       sigma1 = 1d0+alpha**2+(1d0-alpha)**2/sigma**2; sigma1 = 1d0/sqrt(sigma1)
       sigma2 = 1d0+1d0/sigma**2; sigma2 = 1d0/sqrt(sigma2)
 
-      do i = 1,Lsite
-        call gaussian_random_number(x1,p1)
-        call gaussian_random_number(x2,p2)
-        z1 = (x1 + zI * p1)*sigma1
-        z2 = (x2 + zI * p2)*sigma2
-        zHO_out(i,1) = z1
-        zHO_out(i,2) = z2 + alpha*z1
+      do 
+        do i = 1,Lsite
+          call gaussian_random_number(x1,p1)
+          call gaussian_random_number(x2,p2)
+          z1 = (x1 + zI * p1)*sigma1
+          z2 = (x2 + zI * p2)*sigma2
+          zHO_out(i,1) = z1
+          zHO_out(i,2) = z2 + alpha*z1
+        end do
+
+        norm0 = exp(-sum(abs(zHO_out(:,1) - zHO_out(:,2))**2))
+        if(norm0 > epsilon_ovlp_ini)exit
+        if(myrank == 0)then
+          write(*,"(A)")"Warning: Initial overlap of coherent states"
+          write(*,"(A)")"is too small. New coherent states are regenerated."
+        end if
       end do
 
       zweight = 1d0
