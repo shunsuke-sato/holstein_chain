@@ -71,8 +71,9 @@ module CTEF_mod
       complex(8) :: zpsi_store(Lsite,2),zHO_store(Lsite,2),zHO_gauss_store(Lsite,2)
       complex(8) :: zweight, zweight0
       real(8) :: norm, phi0,phi
-      integer :: itraj, iphase, it, i,j
+      integer :: iphase, it, i,j
       integer :: itraj_t, istore
+      integer(8) :: itraj
       integer :: i_antithetic, j_antithetic
       integer :: i_dm, j_dm
       real(8) :: norm_CTEF(0:Nt+1),norm_CTEF_l(0:Nt+1),norm_CTEF_t(0:Nt+1)
@@ -92,8 +93,8 @@ module CTEF_mod
       integer,parameter :: ran_len = 1
       real(8) :: rvec(ran_len)
       logical :: is_norm_converged
-      integer :: ntraj_tot, ntraj_tot_l
-      integer :: ntraj_stable, ntraj_stable_l
+      integer(8) :: ntraj_tot, ntraj_tot_l
+      integer(8) :: ntraj_stable, ntraj_stable_l
 
       norm_CTEF_l = 0d0; Ekin_CTEF_l = 0d0
       Ebath_CTEF_l = 0d0; Ecoup_CTEF_l = 0d0
@@ -184,13 +185,17 @@ module CTEF_mod
 
       end do
 
-      call MPI_ALLREDUCE(ntraj_tot_l,ntraj_tot,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(ntraj_stable_l,ntraj_stable,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(ntraj_tot_l,ntraj_tot,1,MPI_INTEGER8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(ntraj_stable_l,ntraj_stable,1,MPI_INTEGER8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-      norm_CTEF_l = norm_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
-      Ekin_CTEF_l = Ekin_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
-      Ebath_CTEF_l = Ebath_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
-      Ecoup_CTEF_l = Ecoup_CTEF_l/dble(ntraj_stable*Nphase)*Lsite*nsize_store
+      norm_CTEF_l = norm_CTEF_l&
+        /dble(ntraj_stable)/dble(Nphase)*dble(Lsite)*dble(nsize_store)
+      Ekin_CTEF_l = Ekin_CTEF_l&
+        /dble(ntraj_stable)/dble(Nphase)*dble(Lsite)*dble(nsize_store)
+      Ebath_CTEF_l = Ebath_CTEF_l&
+        /dble(ntraj_stable)/dble(Nphase)*dble(Lsite)*dble(nsize_store)
+      Ecoup_CTEF_l = Ecoup_CTEF_l&
+        /dble(ntraj_stable)/dble(Nphase)*dble(Lsite)*dble(nsize_store)
       call MPI_ALLREDUCE(norm_CTEF_l,norm_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ekin_CTEF_l,Ekin_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(Ebath_CTEF_l,Ebath_CTEF,Nt+2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
