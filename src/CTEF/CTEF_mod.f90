@@ -129,13 +129,20 @@ module CTEF_mod
 
 
 ! == localized init wf
-        i_dm = 1
-        do j_dm = 1,Lsite
-          zpsi_store = 0d0 
-          zpsi_store(i_dm,1) = 1d0; zpsi_store(j_dm,2) = 1d0 
-          zrho_dm = exp(zI*2d0*pi*(j_dm-i_dm)*dble(Lsite/2)/dble(Lsite)) !&
-              !              /dble(Lsite)*dble(Lsite*)
+!        i_dm = 1
+!        do j_dm = 1,Lsite
+!          zpsi_store = 0d0 
+!          zpsi_store(i_dm,1) = 1d0; zpsi_store(j_dm,2) = 1d0 
+!          zrho_dm = exp(zI*2d0*pi*(j_dm-i_dm)*dble(Lsite/2)/dble(Lsite)) !&
+       !              /dble(Lsite)*dble(Lsite*)
 ! == localized init wf
+
+! == delocalized init wf
+        do j_dm = 1,Lsite
+          zpsi_store(j_dm,:) = exp(zI*2d0*pi*(j_dm-1)*dble(Lsite/2)/dble(Lsite))/sqrt(dble(Lsite))
+        end do
+        zrho_dm = 1d0
+! == delocalized init wf
 
           zweight = zweight0 * zrho_dm
 
@@ -175,7 +182,7 @@ module CTEF_mod
 
         end do
 
-      end do
+!      end do
 
       norm_CTEF_l = norm_CTEF_l + norm_CTEF_sl/dble(nsize_store)
       Ekin_CTEF_l = Ekin_CTEF_l + Ekin_CTEF_sl/dble(nsize_store)
