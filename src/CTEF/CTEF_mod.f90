@@ -222,6 +222,8 @@ module CTEF_mod
       real(8) :: x1,x2,p1,p2
       complex(8) :: z1,z2
       real(8) :: sigma, norm_fact, alpha, sigma1, sigma2
+      integer,parameter :: ran_len = 1
+      real(8) :: rvec(ran_len)
 
       sigma = sigma_correlated_gaussian
       norm_fact = 4d0*pi**2/( &
@@ -231,6 +233,7 @@ module CTEF_mod
       sigma1 = 1d0+alpha**2+(1d0-alpha)**2/sigma**2; sigma1 = 1d0/sqrt(sigma1)
       sigma2 = 1d0+1d0/sigma**2; sigma2 = 1d0/sqrt(sigma2)
 
+      do
       do i = 1,Lsite
         call gaussian_random_number(x1,p1)
         call gaussian_random_number(x2,p2)
@@ -239,12 +242,18 @@ module CTEF_mod
         zHO_out(i,1) = z1
         zHO_out(i,2) = z2 + alpha*z1
       end do
+      call ranlux_double (rvec, ran_len)
+      x1 = cos(aimag(sum(zHO_out(:,1)*conjg(zHO_out(:,2)))))
+      if(abs(x1) > rvec(1))exit
+
+      end do
 
       zweight = 1d0
       do i = 1,Lsite
         zweight = zweight * norm_fact/pi**2*exp( &
           0.5d0/sigma**2*abs(zHO_out(i,1)-zHO_out(i,2))**2 )
       end do
+      zweight = zweight/x1
 
     end subroutine bath_sampling_correlated_gaussian
 !-----------------------------------------------------------------------------------------
