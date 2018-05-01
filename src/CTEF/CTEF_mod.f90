@@ -46,6 +46,14 @@ module CTEF_mod
 
     end subroutine CTEF
 !-----------------------------------------------------------------------------------------
+    subroutine CTEF_kernel
+      implicit none
+
+      call CTEF_allocation
+      call CTEF_dynamics_kernel
+
+    end subroutine CTEF
+!-----------------------------------------------------------------------------------------
     subroutine CTEF_allocation
       implicit none
       integer :: i,j

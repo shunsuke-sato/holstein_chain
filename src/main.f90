@@ -35,6 +35,8 @@ program main
     call PTEF_dynamics
   case('CTEF')
     call CTEF
+  case('CTEF_K')
+    call CTEF_kernel
   case('PBME')
     call PBME_allocation
     call PBME_dynamics
