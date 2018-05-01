@@ -222,6 +222,90 @@ module CTEF_mod
 
     end subroutine CTEF_dynamics
 !-----------------------------------------------------------------------------------------
+    subroutine CTEF_dynamics_kernel
+      implicit none
+
+      call allocate_GQME_kernel
+      allocate(zK1_l(Lsite,Lsite,1,Lsite,0:Nt),zK3_l(Lsite,Lsite,1,Lsite,0:Nt))
+      zK1_l = 0d0; zK3_l = 0d0
+
+      do itraj_t  = 1, Ntraj/nsize_store
+        zK1_sl = 0d0; zK3_sl = 0d0
+        do istore = 1, nsize_store
+          itraj = itraj + 1
+          call bath_sampling_correlated_gaussian(zHO_store,zweight0)
+
+          call ranlux_double (rvec, ran_len)
+          phi0 = rvec(1); phi0 = 2d0*pi*phi0
+          if(myrank == 0 .and. mod(itraj,max(Ntraj/200,1))==0)write(*,*)"itraj=",itraj,"/",Ntraj
+          if(mod(itraj,Nprocs) /= myrank)cycle
+
+! == localized init wf
+          i_dm = 1
+          do j_dm = 1,Lsite
+            zpsi_store = 0d0 
+            zpsi_store(i_dm,1) = 1d0; zpsi_store(j_dm,2) = 1d0 
+
+            zweight = zweight0 * (conjg(zHO_store(j_dm,2))-zHO_store(i_dm,1))&
+              *sqrt(0.5d0/omega0)
+
+            
+            zK1_phase_ave = 0d0; zK3_phase_ave = 0d0
+            is_norm_converged = .true.
+            do iphase = 1,Nphase
+              if(.not. is_norm_converged)exit
+
+              phi = phi0 + 2d0*pi*dble(iphase-1)/Nphase
+              call set_initial_condition(zpsi_store,zHO_store, &
+                zpsi_CTEF, zHO_CTEF, phi, norm)
+
+              call propagation_kernel(norm_CTEF_t,zK1_t, zK3_t)
+
+              if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
+
+            end do
+
+            if(is_norm_converged)then
+              ntraj_stable_l = ntraj_stable_l + 1
+              zK1_sl = zK1_sl + zK1_phase_ave
+              zK3_sl = zK3_sl + zK3_phase_ave
+            end if
+            ntraj_tot_l = ntraj_tot_l + 1
+            
+
+          end do
+        end do
+        
+        zK1_l = zK1_l + zK1_sl/dble(nsize_store)
+        zK3_l = zK3_l + zK3_sl/dble(nsize_store)
+      end do
+
+      call MPI_ALLREDUCE(ntraj_tot_l,ntraj_tot,1,MPI_INTEGER8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(ntraj_stable_l,ntraj_stable,1,MPI_INTEGER8,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+      if(myrank == 0)then
+        write(*,*)"# of total   trajectries",ntraj_tot
+        write(*,*)"# of stable  trajectries",ntraj_stable
+        write(*,*)"# of skipped trajectries",ntraj_tot - ntraj_stable
+      end if
+      
+      zK1_l = zK1_l&
+        /dble(ntraj_stable)/dble(Nphase)*dble(Lsite)*dble(nsize_store)
+      zK3_l = zK3_l&
+        /dble(ntraj_stable)/dble(Nphase)*dble(Lsite)*dble(nsize_store)
+
+      call MPI_ALLREDUCE(zK1_l,zK1,(Nt+1)*Lsite**3,&
+        MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(zK3_l,zK3,(Nt+1)*Lsite**3,&
+        MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+      call refine_GQME_kernel_K1K3  ! Inversion symmetry, Unitarity, ... etc.
+      call evaluate_GQME_kernel_full
+
+
+
+    end subroutine CTEF_dynamics_kernel
+!-----------------------------------------------------------------------------------------
     subroutine bath_sampling_correlated_gaussian(zHO_out,zweight)
       implicit none
       complex(8),intent(out) :: zHO_out(Lsite,2)
@@ -349,6 +433,28 @@ module CTEF_mod
       end do
 
     end subroutine propagation
+!-----------------------------------------------------------------------------------------
+    subroutine propagation_kernel(norm_CTEF_t,...)
+      implicit none
+      real(8),intent(out) :: norm_CTEF_t(0:Nt+1)
+      integer :: it
+
+      call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(0))
+
+      zHO_dot_CTEF = 0d0
+      call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+      call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+      call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+
+      do it = 0,Nt-1
+
+!        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+        call dt_evolve_Runge_Kutta(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+        call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
+        
+      end do
+
+    end subroutine propagation_kernel
 !-----------------------------------------------------------------------------------------
     subroutine calc_norm(zpsi_in,zHO_in,norm)
       implicit none
