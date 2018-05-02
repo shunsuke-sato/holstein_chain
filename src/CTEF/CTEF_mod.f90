@@ -509,13 +509,13 @@ module CTEF_mod
             do j = 1,Lsite
               zK3_t(i,j,it_t) = sum(zrho_dm_t(i,j,:,:))
               zK1_t(i,j,it_t) = zrho_dm_t(i,j,1,1)*(&
-                conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
+                conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))-zHO_CTEF(j,1) ) &
                                +zrho_dm_t(i,j,2,2)*(&
-                conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+                conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))-zHO_CTEF(j,2) ) &
                                +zrho_dm_t(i,j,1,2)*(&
-                conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+                conjg(zHO_CTEF(i,1))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))-zHO_CTEF(j,2) ) &
                                +zrho_dm_t(i,j,2,1)*(&
-                conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
+                conjg(zHO_CTEF(i,2))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))-zHO_CTEF(j,1) ) 
             end do
           end do
         end subroutine evaluate_kernel
