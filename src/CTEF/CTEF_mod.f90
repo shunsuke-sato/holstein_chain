@@ -249,6 +249,7 @@ module CTEF_mod
       allocate(zK1_t(Lsite,Lsite,0:Nt),zK3_t(Lsite,Lsite,0:Nt))
       zK1_l = 0d0; zK3_l = 0d0
 
+      ntraj_tot_l = 0; ntraj_stable_l = 0
       itraj = 0
       do itraj_t  = 1, max(Ntraj/nsize_store,1)
         zK1_sl = 0d0; zK3_sl = 0d0
