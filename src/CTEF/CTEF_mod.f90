@@ -434,9 +434,12 @@ module CTEF_mod
 
     end subroutine propagation
 !-----------------------------------------------------------------------------------------
-    subroutine propagation_kernel(norm_CTEF_t,...)
+    subroutine propagation_kernel(norm_CTEF_t,zK1_t,zK3_t)
       implicit none
       real(8),intent(out) :: norm_CTEF_t(0:Nt+1)
+      complex(8),intent(out) :: zK1_t(Lsite,Lsite,1,Lsite,0:Nt)
+      complex(8),intent(out) :: zK3_t(Lsite,Lsite,1,Lsite,0:Nt)
+      complex(8) :: zrho_dm_t(Lsite,Lsite,2,2)
       integer :: it
 
       call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(0))
@@ -445,12 +448,43 @@ module CTEF_mod
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
+      zK3_t(i,:,0) = sum(zrho_dm_t(i,j,:,:))
+      zK1_t(i,j,0) = zrho_dm_t(i,j,1,1)*(&
+        conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
+        +zrho_dm_t(i,j,2,2)*(&
+        conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+        +zrho_dm_t(i,j,1,2)*(&
+        conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+        +zrho_dm_t(i,j,2,1)*(&
+        conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
 
       do it = 0,Nt-1
 
 !        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call dt_evolve_Runge_Kutta(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
+
+        do i = 1, Lsite
+          do j = 1,Lsite
+            zrho_dm_t(i,j,1,1) = zpsi_CTEF(i,1)*conjg(zpsi_CTEF(j,1))*zSb_CTEF(1,1)
+            zrho_dm_t(i,j,1,2) = zpsi_CTEF(i,2)*conjg(zpsi_CTEF(j,1))*zSb_CTEF(1,2)
+            zrho_dm_t(i,j,2,1) = zpsi_CTEF(i,1)*conjg(zpsi_CTEF(j,2))*zSb_CTEF(2,1)
+            zrho_dm_t(i,j,2,2) = zpsi_CTEF(i,2)*conjg(zpsi_CTEF(j,2))*zSb_CTEF(2,2)
+          end do
+        end do
+
+        i = 1
+        do j = 1,Lsite
+          zK3_t(i,:,it+1) = sum(zrho_dm_t(i,j,:,:))
+          zK1_t(i,j,it+1) = zrho_dm_t(i,j,1,1)*(&
+            conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
+                           +zrho_dm_t(i,j,2,2)*(&
+            conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+                           +zrho_dm_t(i,j,1,2)*(&
+            conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+                           +zrho_dm_t(i,j,2,1)*(&
+            conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
+        end do
         
       end do
 
