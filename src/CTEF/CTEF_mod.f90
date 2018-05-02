@@ -249,6 +249,7 @@ module CTEF_mod
       allocate(zK1_t(Lsite,Lsite,0:Nt),zK3_t(Lsite,Lsite,0:Nt))
       zK1_l = 0d0; zK3_l = 0d0
 
+      itraj = 0
       do itraj_t  = 1, max(Ntraj/nsize_store,1)
         zK1_sl = 0d0; zK3_sl = 0d0
         do istore = 1, min(nsize_store,Ntraj)
@@ -326,6 +327,11 @@ module CTEF_mod
       call refine_GQME_kernel_K1K3  ! Inversion symmetry, Unitarity, ... etc.
       call evaluate_GQME_kernel_full
 
+      if(myrank == 0)then
+        open(nfile_full_kernel,file=trim(file_full_kernel),form='unformatted')
+        write(nfile_full_kernel)zK_full,zK1,zK3
+        close(nfile_full_kernel)
+      end if
 
 
     end subroutine CTEF_dynamics_kernel
