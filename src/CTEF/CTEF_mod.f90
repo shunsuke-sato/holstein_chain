@@ -472,20 +472,21 @@ module CTEF_mod
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
-      call evaluate_kernel
+      call evaluate_kernel(0)
 
       do it = 0,Nt-1
 
 !        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call dt_evolve_Runge_Kutta(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
-        call evaluate_kernel
+        call evaluate_kernel(it+1)
         
       end do
       
       contains
-        subroutine evaluate_kernel
+        subroutine evaluate_kernel(it_t)
           implicit none
+          integer,intent(in) :: it_t
           integer :: i,j
 
           do i = 1, Lsite
@@ -499,8 +500,8 @@ module CTEF_mod
 
           do i = 1,Lsite
             do j = 1,Lsite
-              zK3_t(i,j,it+1) = sum(zrho_dm_t(i,j,:,:))
-              zK1_t(i,j,it+1) = zrho_dm_t(i,j,1,1)*(&
+              zK3_t(i,j,it_t) = sum(zrho_dm_t(i,j,:,:))
+              zK1_t(i,j,it_t) = zrho_dm_t(i,j,1,1)*(&
                 conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
                                +zrho_dm_t(i,j,2,2)*(&
                 conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
