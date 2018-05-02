@@ -266,7 +266,7 @@ module CTEF_mod
           i_dm = 1
           do j_dm = 1,Lsite
             zpsi_store = 0d0 
-            zpsi_store(i_dm,1) = 1d0; zpsi_store(j_dm,2) = 1d0 
+            zpsi_store(j_dm,1) = 1d0; zpsi_store(i_dm,2) = 1d0
 
             zweight = zweight0 * (conjg(zHO_store(j_dm,2))-zHO_store(i_dm,1))&
               *sqrt(0.5d0/omega0)
