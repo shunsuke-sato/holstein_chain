@@ -33,7 +33,7 @@ module CTEF_mod
   integer,parameter :: bath_propagator_CrankNicolson = 4
   integer,parameter :: iflag_bath_propagator = bath_propagator_direct
 
-  public :: CTEF
+  public :: CTEF, CTEF_kernel
 
   contains
 
@@ -52,7 +52,7 @@ module CTEF_mod
       call CTEF_allocation
       call CTEF_dynamics_kernel
 
-    end subroutine CTEF_KERNEL
+    end subroutine CTEF_kernel
 !-----------------------------------------------------------------------------------------
     subroutine CTEF_allocation
       implicit none
@@ -234,11 +234,12 @@ module CTEF_mod
       integer :: ntraj_tot_l, ntraj_tot
       integer :: ntraj_stable_l, ntraj_stable
       integer :: i_dm, j_dm, iphase
+      real(8) :: norm
       real(8) :: phi0, phi
       integer,parameter :: ran_len = 1
       real(8) :: rvec(ran_len)
       logical :: is_norm_converged
-
+      real(8) :: norm_CTEF_t(0:Nt+1)
 
 
       call allocate_GQME_kernel
