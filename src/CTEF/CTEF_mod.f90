@@ -224,9 +224,19 @@ module CTEF_mod
 !-----------------------------------------------------------------------------------------
     subroutine CTEF_dynamics_kernel
       implicit none
+      complex(8),allocatable :: zK1_l(:,:,:,:,:),zK3_l(:,:,:,:,:)
+      complex(8),allocatable :: zK1_sl(:,:,:,:,:),zK3_sl(:,:,:,:,:)
+      complex(8),allocatable :: zK1_phase_ave(:,:,:,:,:),zK3_phase_ave(:,:,:,:,:)
+      integer :: itraj_t, istore, itraj
+      integer,parameter :: ran_len = 1
+      real(8) :: rvec(ran_len)
+      logical :: is_norm_converged
+
 
       call allocate_GQME_kernel
       allocate(zK1_l(Lsite,Lsite,1,Lsite,0:Nt),zK3_l(Lsite,Lsite,1,Lsite,0:Nt))
+      allocate(zK1_sl(Lsite,Lsite,1,Lsite,0:Nt),zK3_sl(Lsite,Lsite,1,Lsite,0:Nt))
+      allocate(zK1_phase_ave(Lsite,Lsite,1,Lsite,0:Nt),zK3_phase_ave(Lsite,Lsite,1,Lsite,0:Nt))
       zK1_l = 0d0; zK3_l = 0d0
 
       do itraj_t  = 1, Ntraj/nsize_store
@@ -260,6 +270,10 @@ module CTEF_mod
                 zpsi_CTEF, zHO_CTEF, phi, norm)
 
               call propagation_kernel(norm_CTEF_t,zK1_t, zK3_t)
+              zK1_phase_ave(:,:,i_dm,j_dm,:) = zK1_phase_ave(:,:,i_dm,j_dm,:) &
+                zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
+              zK3_phase_ave(:,:,i_dm,j_dm,:) = zK3_phase_ave(:,:,i_dm,j_dm,:) &
+                zK3_t(:,:,:)*exp(-zI*phi)*norm*zweight
 
               if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
 
@@ -437,8 +451,8 @@ module CTEF_mod
     subroutine propagation_kernel(norm_CTEF_t,zK1_t,zK3_t)
       implicit none
       real(8),intent(out) :: norm_CTEF_t(0:Nt+1)
-      complex(8),intent(out) :: zK1_t(Lsite,Lsite,1,Lsite,0:Nt)
-      complex(8),intent(out) :: zK3_t(Lsite,Lsite,1,Lsite,0:Nt)
+      complex(8),intent(out) :: zK1_t(Lsite,Lsite,0:Nt)
+      complex(8),intent(out) :: zK3_t(Lsite,Lsite,0:Nt)
       complex(8) :: zrho_dm_t(Lsite,Lsite,2,2)
       integer :: it
 
@@ -473,9 +487,9 @@ module CTEF_mod
           end do
         end do
 
-        i = 1
+        do i = 1,Lsite
         do j = 1,Lsite
-          zK3_t(i,:,it+1) = sum(zrho_dm_t(i,j,:,:))
+          zK3_t(i,j,it+1) = sum(zrho_dm_t(i,j,:,:))
           zK1_t(i,j,it+1) = zrho_dm_t(i,j,1,1)*(&
             conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
                            +zrho_dm_t(i,j,2,2)*(&
@@ -484,6 +498,7 @@ module CTEF_mod
             conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
                            +zrho_dm_t(i,j,2,1)*(&
             conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
+        end do
         end do
         
       end do
