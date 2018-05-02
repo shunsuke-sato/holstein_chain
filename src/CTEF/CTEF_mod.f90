@@ -52,7 +52,7 @@ module CTEF_mod
       call CTEF_allocation
       call CTEF_dynamics_kernel
 
-    end subroutine CTEF
+    end subroutine CTEF_KERNEL
 !-----------------------------------------------------------------------------------------
     subroutine CTEF_allocation
       implicit none
@@ -227,16 +227,25 @@ module CTEF_mod
       complex(8),allocatable :: zK1_l(:,:,:,:,:),zK3_l(:,:,:,:,:)
       complex(8),allocatable :: zK1_sl(:,:,:,:,:),zK3_sl(:,:,:,:,:)
       complex(8),allocatable :: zK1_phase_ave(:,:,:,:,:),zK3_phase_ave(:,:,:,:,:)
+      complex(8),allocatable :: zK1_t(:,:,:),zK3_t(:,:,:)
+      complex(8) :: zpsi_store(Lsite,2),zHO_store(Lsite,2)
+      complex(8) :: zweight, zweight0
       integer :: itraj_t, istore, itraj
+      integer :: ntraj_tot_l, ntraj_tot
+      integer :: ntraj_stable_l, ntraj_stable
+      integer :: i_dm, j_dm, iphase
+      real(8) :: phi0, phi
       integer,parameter :: ran_len = 1
       real(8) :: rvec(ran_len)
       logical :: is_norm_converged
+
 
 
       call allocate_GQME_kernel
       allocate(zK1_l(Lsite,Lsite,1,Lsite,0:Nt),zK3_l(Lsite,Lsite,1,Lsite,0:Nt))
       allocate(zK1_sl(Lsite,Lsite,1,Lsite,0:Nt),zK3_sl(Lsite,Lsite,1,Lsite,0:Nt))
       allocate(zK1_phase_ave(Lsite,Lsite,1,Lsite,0:Nt),zK3_phase_ave(Lsite,Lsite,1,Lsite,0:Nt))
+      allocate(zK1_t(Lsite,Lsite,0:Nt),zK3_t(Lsite,Lsite,0:Nt))
       zK1_l = 0d0; zK3_l = 0d0
 
       do itraj_t  = 1, Ntraj/nsize_store
@@ -271,9 +280,9 @@ module CTEF_mod
 
               call propagation_kernel(norm_CTEF_t,zK1_t, zK3_t)
               zK1_phase_ave(:,:,i_dm,j_dm,:) = zK1_phase_ave(:,:,i_dm,j_dm,:) &
-                zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
+                + zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
               zK3_phase_ave(:,:,i_dm,j_dm,:) = zK3_phase_ave(:,:,i_dm,j_dm,:) &
-                zK3_t(:,:,:)*exp(-zI*phi)*norm*zweight
+                + zK3_t(:,:,:)*exp(-zI*phi)*norm*zweight
 
               if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
 
@@ -462,46 +471,45 @@ module CTEF_mod
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
       call refine_effective_hamiltonian(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
-      zK3_t(i,:,0) = sum(zrho_dm_t(i,j,:,:))
-      zK1_t(i,j,0) = zrho_dm_t(i,j,1,1)*(&
-        conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
-        +zrho_dm_t(i,j,2,2)*(&
-        conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
-        +zrho_dm_t(i,j,1,2)*(&
-        conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
-        +zrho_dm_t(i,j,2,1)*(&
-        conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
+      call evaluate_kernel
 
       do it = 0,Nt-1
 
 !        call dt_evolve_etrs(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call dt_evolve_Runge_Kutta(zpsi_CTEF,zHO_CTEF,zHO_dot_CTEF)
         call calc_norm(zpsi_CTEF,zHO_CTEF,norm_CTEF_t(it+1))
-
-        do i = 1, Lsite
-          do j = 1,Lsite
-            zrho_dm_t(i,j,1,1) = zpsi_CTEF(i,1)*conjg(zpsi_CTEF(j,1))*zSb_CTEF(1,1)
-            zrho_dm_t(i,j,1,2) = zpsi_CTEF(i,2)*conjg(zpsi_CTEF(j,1))*zSb_CTEF(1,2)
-            zrho_dm_t(i,j,2,1) = zpsi_CTEF(i,1)*conjg(zpsi_CTEF(j,2))*zSb_CTEF(2,1)
-            zrho_dm_t(i,j,2,2) = zpsi_CTEF(i,2)*conjg(zpsi_CTEF(j,2))*zSb_CTEF(2,2)
-          end do
-        end do
-
-        do i = 1,Lsite
-        do j = 1,Lsite
-          zK3_t(i,j,it+1) = sum(zrho_dm_t(i,j,:,:))
-          zK1_t(i,j,it+1) = zrho_dm_t(i,j,1,1)*(&
-            conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
-                           +zrho_dm_t(i,j,2,2)*(&
-            conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
-                           +zrho_dm_t(i,j,1,2)*(&
-            conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
-                           +zrho_dm_t(i,j,2,1)*(&
-            conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
-        end do
-        end do
+        call evaluate_kernel
         
       end do
+      
+      contains
+        subroutine evaluate_kernel
+          implicit none
+          integer :: i,j
+
+          do i = 1, Lsite
+            do j = 1,Lsite
+              zrho_dm_t(i,j,1,1) = zpsi_CTEF(i,1)*conjg(zpsi_CTEF(j,1))*zSb_CTEF(1,1)
+              zrho_dm_t(i,j,1,2) = zpsi_CTEF(i,2)*conjg(zpsi_CTEF(j,1))*zSb_CTEF(1,2)
+              zrho_dm_t(i,j,2,1) = zpsi_CTEF(i,1)*conjg(zpsi_CTEF(j,2))*zSb_CTEF(2,1)
+              zrho_dm_t(i,j,2,2) = zpsi_CTEF(i,2)*conjg(zpsi_CTEF(j,2))*zSb_CTEF(2,2)
+            end do
+          end do
+
+          do i = 1,Lsite
+            do j = 1,Lsite
+              zK3_t(i,j,it+1) = sum(zrho_dm_t(i,j,:,:))
+              zK1_t(i,j,it+1) = zrho_dm_t(i,j,1,1)*(&
+                conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) &
+                               +zrho_dm_t(i,j,2,2)*(&
+                conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+                               +zrho_dm_t(i,j,1,2)*(&
+                conjg(zHO_CTEF(i,1))+zHO_CTEF(i,1)-conjg(zHO_CTEF(j,2))+zHO_CTEF(j,2) ) &
+                               +zrho_dm_t(i,j,2,1)*(&
+                conjg(zHO_CTEF(i,2))+zHO_CTEF(i,2)-conjg(zHO_CTEF(j,1))+zHO_CTEF(j,1) ) 
+            end do
+          end do
+        end subroutine evaluate_kernel
 
     end subroutine propagation_kernel
 !-----------------------------------------------------------------------------------------
