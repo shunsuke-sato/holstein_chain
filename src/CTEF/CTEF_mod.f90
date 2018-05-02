@@ -109,10 +109,10 @@ module CTEF_mod
       ntraj_tot_l = 0; ntraj_stable_l = 0
       
       itraj = 0
-      do itraj_t  = 1, Ntraj/nsize_store
+      do itraj_t  = 1, max(Ntraj/nsize_store,1)
       norm_CTEF_sl = 0d0; Ekin_CTEF_sl = 0d0
       Ebath_CTEF_sl = 0d0; Ecoup_CTEF_sl = 0d0
-      do istore = 1, nsize_store
+      do istore = 1, min(nsize_store,Ntraj)
         itraj = itraj + 1
 ! == bath distribution
         call bath_sampling_correlated_gaussian(zHO_store,zweight0)
@@ -249,9 +249,9 @@ module CTEF_mod
       allocate(zK1_t(Lsite,Lsite,0:Nt),zK3_t(Lsite,Lsite,0:Nt))
       zK1_l = 0d0; zK3_l = 0d0
 
-      do itraj_t  = 1, Ntraj/nsize_store
+      do itraj_t  = 1, max(Ntraj/nsize_store,1)
         zK1_sl = 0d0; zK3_sl = 0d0
-        do istore = 1, nsize_store
+        do istore = 1, min(nsize_store,Ntraj)
           itraj = itraj + 1
           call bath_sampling_correlated_gaussian(zHO_store,zweight0)
 
@@ -281,9 +281,9 @@ module CTEF_mod
 
               call propagation_kernel(norm_CTEF_t,zK1_t, zK3_t)
               zK1_phase_ave(:,:,i_dm,j_dm,:) = zK1_phase_ave(:,:,i_dm,j_dm,:) &
-                + zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
+                + gamma**2*sqrt(0.5d0/omega0)*zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
               zK3_phase_ave(:,:,i_dm,j_dm,:) = zK3_phase_ave(:,:,i_dm,j_dm,:) &
-                + zK3_t(:,:,:)*exp(-zI*phi)*norm*zweight
+                - gamma * zK3_t(:,:,:)*exp(-zI*phi)*norm*zweight
 
               if(.not. abs(norm_CTEF_t(Nt)-1d0) < epsilon_norm )is_norm_converged = .false.
 
