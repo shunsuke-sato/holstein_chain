@@ -325,6 +325,11 @@ module CTEF_mod
         MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
 
       call refine_GQME_kernel_K1K3  ! Inversion symmetry, Unitarity, ... etc.
+      if(myrank == 0)then
+        open(20,file="kernel_raw_k1k3.out",form='unformatted')
+        write(20)zK1,zK3
+        close(20)
+      end if
       call evaluate_GQME_kernel_full
 
       if(myrank == 0)then
