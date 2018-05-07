@@ -268,8 +268,7 @@ module CTEF_mod
             zpsi_store = 0d0 
             zpsi_store(j_dm,1) = 1d0; zpsi_store(i_dm,2) = 1d0
 
-            zweight = zweight0 * (conjg(zHO_store(j_dm,2))-zHO_store(i_dm,1))&
-              *sqrt(0.5d0/omega0)
+            zweight = zweight0 * (conjg(zHO_store(i_dm,2))-zHO_store(j_dm,1))
 
             
             zK1_phase_ave = 0d0; zK3_phase_ave = 0d0
@@ -283,7 +282,7 @@ module CTEF_mod
 
               call propagation_kernel(norm_CTEF_t,zK1_t, zK3_t)
               zK1_phase_ave(:,:,i_dm,j_dm,:) = zK1_phase_ave(:,:,i_dm,j_dm,:) &
-                + gamma**2*sqrt(0.5d0/omega0)*zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
+                + gamma**2*zK1_t(:,:,:)*exp(-zI*phi)*norm*zweight
               zK3_phase_ave(:,:,i_dm,j_dm,:) = zK3_phase_ave(:,:,i_dm,j_dm,:) &
                 - gamma * zK3_t(:,:,:)*exp(-zI*phi)*norm*zweight
 
