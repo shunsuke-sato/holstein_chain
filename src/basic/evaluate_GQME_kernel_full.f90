@@ -11,9 +11,12 @@ subroutine evaluate_GQME_kernel_full
   complex(8),allocatable :: zK2_tmp(:,:,:,:,:),zK_tmp(:,:,:,:),zK_sum(:,:,:,:)
   complex(8),allocatable :: zK2_l(:,:,:,:,:)
   integer :: mod_table(-Lsite:Lsite)
+  real(8),parameter :: epsilon_res = 1d-10
+  real(8) :: residual
+  logical :: if_converged
 
 !  if(myrank /= 0)return
-
+  if_converged = .false.
   allocate(zK2_tmp(Lsite,Lsite,1,Lsite,0:Nt),zK2_l(Lsite,Lsite,1,Lsite,0:Nt))
   allocate(zK_tmp(Lsite,Lsite,1,Lsite),zK_sum(Lsite,Lsite,1,Lsite))
 
@@ -50,10 +53,13 @@ subroutine evaluate_GQME_kernel_full
     call MPI_ALLREDUCE(zK2_l,zK2,(Nt+1)*Lsite**3, &
       MPI_DOUBLE_COMPLEX,MPI_SUM,MPI_COMM_WORLD,ierr)
 
+    residual = sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2)
     if(myrank == 0)write(*,"(A,2x,I5,2e16.6e3)")"K2 error",iter_scf &
-      ,sum(abs(zK2-zK2_tmp)**2)/sum(abs(zK1)**2) &
-         ,sum(abs(zK2)**2)/sum(abs(zK1)**2)
+      ,residual,sum(abs(zK2)**2)/sum(abs(zK1)**2)
     zK2_tmp = zK2
+    if(residual < epsilon_res)if_converged = .true.
+    call comm_bcast(if_converged)
+    if(if_converged)exit
 
   end do
   
