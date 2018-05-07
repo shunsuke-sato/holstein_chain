@@ -5,6 +5,7 @@
 !---------------------------------------------------!
 subroutine evaluate_GQME_kernel_full
   use global_variables
+  use communication
   implicit none
   integer,parameter :: Niter_scf = 20
   integer :: it,it2,iter_scf,i
